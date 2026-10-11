@@ -2,253 +2,224 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1224">
 <title>VIP Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0b0d14;--card:#151826;--card2:#1b1f31;--line:#262b40;--tx:#eef0f8;--mut:#8a90a8;--ac:#f5c542;--ok:#34d399;--bad:#f87171;--blue:#60a5fa}
+:root{
+  --base:#0e1224; --tx:#f4f2ff; --mut:rgba(244,242,255,.62);
+  --glass:rgba(255,255,255,.08); --glass2:rgba(255,255,255,.13); --edge:rgba(255,255,255,.18);
+  --gold:#f2d08a; --gold2:#e7a94b; --ok:#4fe3b5; --bad:#ff7a90; --blue:#8fb4ff;
+  --head:'Bricolage Grotesque','DM Sans',system-ui,sans-serif; --body:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
 *{box-sizing:border-box;margin:0}
-body{background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,13,20,.92);backdrop-filter:blur(8px);z-index:5}
-.logo{font-weight:800;font-size:18px;letter-spacing:.3px}
-header a{color:var(--mut);font-size:13px;text-decoration:none}
-main{max-width:640px;margin:0 auto;padding:14px 14px 60px;display:flex;flex-direction:column;gap:14px}
-section{display:flex;flex-direction:column;gap:14px}
+html{-webkit-tap-highlight-color:transparent}
+body{background:var(--base);color:var(--tx);font:15px/1.5 var(--body);min-height:100vh}
+body::before{content:"";position:fixed;inset:0;z-index:-1;
+  background:
+   radial-gradient(60% 42% at 12% 8%,rgba(124,92,255,.60),transparent 70%),
+   radial-gradient(50% 40% at 92% 28%,rgba(255,93,143,.38),transparent 70%),
+   radial-gradient(70% 50% at 45% 105%,rgba(25,195,177,.40),transparent 70%)}
 [hidden]{display:none!important}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
-.card h2{font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.card h2 small{color:var(--mut);font-weight:500;font-size:12px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.glass{background:var(--glass);border:1px solid var(--edge);border-radius:22px;
+  -webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
+  box-shadow:0 10px 30px rgba(5,6,20,.28), inset 0 1px 0 rgba(255,255,255,.14)}
+
+main{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 18px) 16px calc(env(safe-area-inset-bottom,0px) + 120px)}
+.view{display:flex;flex-direction:column;gap:14px}
+h1{font:800 26px/1.15 var(--head);letter-spacing:-.3px}
+h2{font:700 17px/1.2 var(--head);display:flex;align-items:center;gap:8px;margin-bottom:12px}
+h2 small{font:500 12px var(--body);color:var(--mut)}
+.pad{padding:16px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .mut{color:var(--mut);font-size:13px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card2);color:var(--tx);padding:10px 14px;border-radius:12px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
-.btn:active{transform:scale(.98)}
+.empty{color:var(--mut);text-align:center;padding:16px 8px;font-size:14px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--edge);background:var(--glass2);padding:11px 16px;border-radius:14px;font-weight:700;cursor:pointer;text-decoration:none;color:var(--tx);transition:transform .12s, background .2s}
+.btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn.sm{padding:6px 10px;font-size:13px;border-radius:9px}
-.btn.gold{background:linear-gradient(135deg,#f5c542,#f59e0b);color:#1a1300;border:0}
-.btn.big{padding:15px;font-size:16px;width:100%}
-.btn.ok{background:var(--ok);color:#052e1f;border:0}
-.btn.bad{background:var(--bad);color:#3b0a0a;border:0}
-.btn.blue{background:var(--blue);color:#06223f;border:0}
-.badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--card2);color:var(--mut)}
-.badge.playing{background:rgba(52,211,153,.15);color:var(--ok)}
-.badge.win{background:rgba(52,211,153,.15);color:var(--ok)}
-.badge.lose{background:rgba(248,113,113,.15);color:var(--bad)}
-.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.slot{background:var(--card2);border:1px dashed var(--line);border-radius:14px;padding:10px 4px;text-align:center;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--mut)}
-.slot.full{border-style:solid;border-color:var(--ac);color:var(--tx)}
-.slot .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.av{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--line);flex:none}
-.av.sm{width:36px;height:36px}
-.av.ph{display:flex;align-items:center;justify-content:center;background:var(--card2);color:var(--mut);font-weight:700}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:10px}
+.btn.wide{width:100%}
+.btn.gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#2b1b00;border:0;box-shadow:0 8px 22px rgba(231,169,75,.35)}
+.btn.ok{background:var(--ok);color:#06382a;border:0}
+.btn.bad{background:var(--bad);color:#46101b;border:0}
+.btn.blue{background:var(--blue);color:#0b2150;border:0}
+
+.chip{font-size:12px;font-weight:700;padding:4px 11px;border-radius:99px;background:var(--glass2);color:var(--mut);border:1px solid var(--edge)}
+.chip.playing,.chip.win{color:var(--ok);border-color:rgba(79,227,181,.4)}
+.chip.lose{color:var(--bad);border-color:rgba(255,122,144,.4)}
+.chip.admin{color:var(--gold);border-color:rgba(242,208,138,.45)}
+
+.av{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--edge);flex:none;background:var(--glass2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--mut)}
+.av.sm{width:34px;height:34px;font-size:13px}
+.av.lg{width:92px;height:92px;font-size:34px;border-width:3px;border-color:var(--gold)}
+
+.seats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.seat{border-radius:18px;background:rgba(255,255,255,.05);border:1px dashed var(--edge);min-height:108px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;font-size:12px;color:var(--mut)}
+.seat.full{border:1px solid rgba(242,208,138,.55);background:rgba(242,208,138,.08);color:var(--tx)}
+.seat .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;font-size:13px}
+.playing-glow .seat.full .av{animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(79,227,181,.55)}50%{box-shadow:0 0 0 8px rgba(79,227,181,0)}}
+@media (prefers-reduced-motion:reduce){.playing-glow .seat.full .av{animation:none}}
+
 .list{display:flex;flex-direction:column;gap:8px}
-.item{display:flex;align-items:center;gap:10px;background:var(--card2);border-radius:12px;padding:8px 10px}
+.item{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:16px;padding:9px 11px}
 .item .info{flex:1;min-width:0}
 .item .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pos{width:26px;height:26px;border-radius:50%;background:var(--ac);color:#1a1300;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.pos{width:26px;height:26px;border-radius:50%;background:var(--gold);color:#2b1b00;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
 .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.empty{color:var(--mut);text-align:center;padding:14px;font-size:14px}
-.cam{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:4/3;margin-bottom:10px}
-.cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-input[type=text]{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--tx);padding:11px 12px;border-radius:12px;font:inherit;margin-bottom:10px}
-label.chk{display:flex;gap:8px;align-items:center;margin:2px 0 12px;color:var(--mut);font-size:14px}
-.ctrl{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ctrl{display:flex;gap:8px;margin-top:12px}
 .ctrl .btn{flex:1}
-.hist{display:flex;flex-direction:column;gap:6px;background:var(--card2);border-radius:12px;padding:10px}
-.hist .top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut)}
-.avs{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.avs span{font-size:13px}
-#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90%}
-#toast.on{opacity:1}
-#mstat{font-size:12px;color:var(--mut);text-align:center}
+.hist{background:rgba(255,255,255,.06);border-radius:16px;padding:11px;display:flex;flex-direction:column;gap:8px}
+.avs{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center}
+.avs span{font-size:13px;display:flex;align-items:center;gap:6px}
+
+.donate{display:flex;align-items:center;gap:12px;padding:15px 16px;text-decoration:none;color:var(--tx);background:linear-gradient(135deg,rgba(242,208,138,.30),rgba(231,169,75,.12));border-color:rgba(242,208,138,.5)}
+.donate b{font:700 16px var(--head);display:block}
+.donate .ico{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;color:#2b1b00;flex:none}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{padding:12px 6px;text-align:center;border-radius:16px;background:rgba(255,255,255,.06)}
+.stat b{display:block;font:800 24px var(--head)}
+.profile-top{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:22px 16px}
+
+/* navbar bawah */
+nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);width:min(92vw,460px);z-index:30;display:flex;justify-content:space-around;padding:8px;border-radius:26px}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;border:0;background:none;border-radius:18px;color:var(--mut);font-size:11px;font-weight:700;cursor:pointer;text-decoration:none}
+.ni svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ni.on{color:var(--tx);background:var(--glass2);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+.ni.gem{color:var(--gold)}
+
+/* login */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 16px}
+.auth{width:100%;max-width:400px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.brand{font:800 24px var(--head);text-align:center}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,.07);border-radius:14px;padding:4px}
+.seg button{border:0;background:none;padding:9px;border-radius:11px;font-weight:700;color:var(--mut);cursor:pointer}
+.seg button.on{background:var(--glass2);color:var(--tx);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+.cam{position:relative;border-radius:20px;overflow:hidden;background:rgba(0,0,0,.4);aspect-ratio:4/3}
+.cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#authMsg{text-align:center;font-size:14px;color:var(--mut);min-height:21px}
+input[type=text]{width:100%;background:rgba(255,255,255,.08);border:1px solid var(--edge);padding:12px 14px;border-radius:14px;outline:none}
+input[type=text]::placeholder{color:var(--mut)}
+.setup{padding:20px;max-width:420px}
+.setup code{background:rgba(255,255,255,.12);padding:1px 6px;border-radius:6px;font-size:13px}
+
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-20px);padding:10px 16px;border-radius:99px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90%;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#mstat{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 4px);text-align:center;font-size:12px;color:var(--mut);pointer-events:none}
 </style>
 </head>
 <body>
-<header>
-  <div class="logo">👑 VIP Queue</div>
-  <a id="navlink" href="#/add">Admin</a>
-</header>
 
-<main>
-  <!-- ===== HALAMAN PUBLIK ===== -->
-  <section id="pub"></section>
+<section id="setup" hidden style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div class="glass setup">
+    <h2>Isi konfigurasi dulu</h2>
+    <p class="mut">Buka <code>index.html</code>, lalu isi <code>SUPABASE_URL</code> dan <code>SUPABASE_KEY</code> (anon key) di bagian <code>CFG</code>. Jalankan juga <code>supabase.sql</code> di SQL Editor Supabase.</p>
+  </div>
+</section>
 
-  <!-- ===== HALAMAN /add ===== -->
-  <section id="adm" hidden>
-    <div id="loginBox" class="card" hidden>
-      <h2>🔐 Login Wajah</h2>
-      <p class="mut" style="margin-bottom:10px">Arahkan wajah ke kamera. Login otomatis kalau wajah terdaftar.</p>
-      <div class="cam"><video id="vLogin" playsinline muted></video></div>
-      <p id="loginMsg" class="mut" style="margin-bottom:10px">Kamera belum aktif.</p>
-      <button class="btn" data-act="logincam" style="width:100%">📷 Buka kamera</button>
+<section id="login" hidden>
+  <div class="glass auth">
+    <div class="brand">👑 VIP Queue</div>
+    <div class="seg">
+      <button id="segIn" class="on" data-act="modeIn">Masuk</button>
+      <button id="segUp" data-act="modeUp">Daftar</button>
     </div>
-
-    <div id="panel" hidden>
-      <div class="card row" id="whoCard"><div id="who"></div><button class="btn sm" data-act="logout">Keluar</button></div>
-      <div class="card" id="a-room"></div>
-      <div class="card" id="a-queue"></div>
-
-      <div class="card" id="regCard">
-        <h2 id="regTitle">➕ Daftar VIP Baru</h2>
-        <input type="text" id="rName" placeholder="Nama VIP" maxlength="30" autocomplete="off">
-        <div class="cam"><video id="vReg" playsinline muted></video></div>
-        <label class="chk" id="rQueueWrap"><input type="checkbox" id="rQueue" checked> Langsung masuk antrian</label>
-        <div class="ctrl" style="margin-top:0">
-          <button class="btn" data-act="regcam">📷 Buka kamera</button>
-          <button class="btn gold" data-act="regsave">Simpan wajah</button>
-        </div>
-      </div>
-
-      <div class="card" id="a-members"></div>
-      <div class="card" id="a-history"></div>
+    <div class="cam"><video id="cam" playsinline muted></video></div>
+    <p id="authMsg">Memuat…</p>
+    <div id="upForm" hidden style="display:flex;flex-direction:column;gap:10px">
+      <input type="text" id="rName" placeholder="Nama kamu" maxlength="30" autocomplete="off">
+      <button class="btn gold wide" data-act="regsave">Daftarkan wajah</button>
     </div>
-  </section>
+    <button class="btn wide" id="camBtn" data-act="camopen" hidden>Buka kamera</button>
+  </div>
+</section>
 
-  <div id="mstat"></div>
-</main>
-<div id="toast"></div>
+<main id="app" hidden></main>
+<nav id="nav" class="glass" hidden></nav>
+<div id="toast" class="glass"></div>
+<div id="mstat"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
-const DONATE = 'https://sociabuzz.com/zixixiangxiang/tribe';
-const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
-const KEY = 'vipq_v1';
-const MAX_ROOM = 4;
-const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const fmt = ts => new Date(ts).toLocaleString('id-ID', {dateStyle:'short', timeStyle:'short'});
+/* ================== KONFIGURASI ================== */
+const CFG = {
+  SUPABASE_URL: 'https://YOUR-PROJECT.supabase.co',
+  SUPABASE_KEY: 'YOUR-ANON-KEY',
+  TG_TOKEN: '8568026296:AAHYlN6_i5dkG0tjZZmd-4PeKKTj8r3NdAM',
+  TG_CHAT: '7879487826',
+  DONATE: 'https://sociabuzz.com/zixixiangxiang/tribe',
+  MODEL_URL: 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/',
+  MAX_ROOM: 4
+};
+/* ================================================== */
 
-/* ---------- Data ---------- */
-const DEF = () => ({members:[], queue:[], room:[], status:'idle', startedAt:null, history:[]});
-function load(){ try { return Object.assign(DEF(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(e){ return DEF(); } }
-let S = load();
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ toast('Penyimpanan penuh'); } }
-const byId = id => S.members.find(m => m.id === id);
-let sess = null;
-try { sess = sessionStorage.getItem('vipSess'); } catch(e){}
-const me = () => byId(sess);
-const isAdm = () => { const m = me(); return !!m && m.role === 'admin'; };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = ts => ts ? new Date(ts).toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'}) : '-';
+const ICON = {
+  home:'<path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/>',
+  hist:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  gem:'<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9 3l3 18M15 3l-3 18"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'
+};
+const svg = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 
 let tt;
-function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 2200); }
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 2400); }
 
-/* ---------- Routing ---------- */
-const onAddRoute = () => /\/add\/?$/.test(location.pathname) || /^#\/?add/.test(location.hash);
+/* ---------- State ---------- */
+const configured = !/YOUR-/.test(CFG.SUPABASE_URL + CFG.SUPABASE_KEY);
+const sb = configured ? supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY) : null;
+let S = {members:[], entries:[], game:{status:'idle', started_at:null}, history:[]};
+let sess = localStorage.getItem('vipSess');
+let tab = 'home', lastSig = '';
+const byId = id => S.members.find(m => m.id === id);
+const me = () => byId(sess);
+const isAdm = () => !!me() && me().role === 'admin';
+const roomIds = () => S.entries.filter(e => e.zone === 'room').sort((a,b) => a.pos - b.pos).map(e => e.member_id);
+const queueIds = () => S.entries.filter(e => e.zone === 'queue').sort((a,b) => a.pos - b.pos).map(e => e.member_id);
 
-/* ---------- Render: helper ---------- */
-function avatar(m, cls=''){
-  return m && m.photo ? `<img class="av ${cls}" src="${m.photo}" alt="">` : `<div class="av ph ${cls}">?</div>`;
-}
-function roomHTML(adm){
-  let h = '<div class="slots">';
-  for (let i = 0; i < MAX_ROOM; i++){
-    const m = byId(S.room[i]);
-    h += m
-      ? `<div class="slot full">${avatar(m)}<div class="nm">${esc(m.name)}</div>${adm && S.status === 'idle' ? `<button class="btn sm" data-act="outroom" data-id="${m.id}">Keluar</button>` : ''}</div>`
-      : `<div class="slot">Kosong<br>${i+1}/${MAX_ROOM}</div>`;
-  }
-  return h + '</div>';
-}
-function queueHTML(adm){
-  if (!S.queue.length) return '<div class="empty">Antrian kosong</div>';
-  return '<div class="list">' + S.queue.map((id, i) => {
-    const m = byId(id); if (!m) return '';
-    const canIn = S.status === 'idle' && S.room.length < MAX_ROOM;
-    return `<div class="item"><div class="pos">${i+1}</div>${avatar(m,'sm')}<div class="info"><b>${esc(m.name)}</b></div>` +
-      (adm ? `<div class="acts"><button class="btn sm" data-act="up" data-id="${id}" ${i===0?'disabled':''}>⬆</button><button class="btn sm blue" data-act="toroom" data-id="${id}" ${canIn?'':'disabled'}>Ke room</button><button class="btn sm" data-act="unq" data-id="${id}">✕</button></div>` : '') +
-      '</div>';
-  }).join('') + '</div>';
-}
-function historyHTML(){
-  if (!S.history.length) return '<div class="empty">Belum ada riwayat game</div>';
-  return '<div class="list">' + S.history.map(h => `
-    <div class="hist"><div class="top"><span>${fmt(h.endedAt)}</span><span class="badge ${h.result}">${h.result === 'win' ? '🏆 WIN' : '💀 LOSE'}</span></div>
-    <div class="avs">${h.players.map(p => `${avatar(byId(p.id),'sm')}<span>${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
+async function refresh(){
+  const [m, q, g, h] = await Promise.all([
+    sb.from('members').select('*').order('created_at'),
+    sb.from('queue').select('*'),
+    sb.from('game').select('*').eq('id', 1).maybeSingle(),
+    sb.from('history').select('*').order('ended_at', {ascending:false}).limit(100)
+  ]);
+  const err = m.error || q.error || g.error || h.error;
+  if (err) throw err;
+  const next = {members:m.data, entries:q.data, game:g.data || {status:'idle', started_at:null}, history:h.data};
+  const sig = JSON.stringify([next.members.map(x => [x.id, x.name, x.role]), next.entries, next.game, next.history.map(x => x.id)]);
+  S = next;
+  if (sess && !me()){ sess = null; localStorage.removeItem('vipSess'); showLogin(); return; }
+  if (sess && sig !== lastSig){ lastSig = sig; render(); }
 }
 
-/* ---------- Render: publik ---------- */
-function renderPublic(){
-  $('pub').innerHTML = `
-    <a class="btn gold big" target="_blank" rel="noopener" href="${DONATE}">💎 Join VIP — Donate di Sociabuzz</a>
-    <div class="card"><h2>🎮 Room Game <span class="badge ${S.status}" style="margin-left:auto">${S.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span></h2>${roomHTML(false)}
-      ${S.status === 'playing' ? `<p class="mut" style="margin-top:10px">Mulai ${fmt(S.startedAt)}</p>` : ''}</div>
-    <div class="card"><h2>⏳ Antrian VIP <small>${S.queue.length} orang</small></h2>${queueHTML(false)}</div>
-    <div class="card"><h2>📜 Riwayat</h2>${historyHTML()}</div>`;
+/* ---------- Telegram ---------- */
+function snap(video, w = 480){
+  return new Promise(res => {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = Math.round(w * (video.videoHeight || 480) / (video.videoWidth || 640));
+    c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+    c.toBlob(b => res(b), 'image/jpeg', 0.85);
+  });
 }
-
-/* ---------- Render: admin ---------- */
-function renderAdmin(){
-  const m = me(), setup = S.members.length === 0;
-  $('loginBox').hidden = !!(setup || m);
-  $('panel').hidden = !(setup || m);
-  ['whoCard','a-room','a-queue','a-members','a-history'].forEach(id => $(id).hidden = setup);
-  $('regCard').hidden = !(setup || isAdm());
-  $('regTitle').textContent = setup ? '👑 Daftarkan Admin Pertama' : '➕ Daftar VIP Baru';
-  $('rQueueWrap').hidden = setup;
-  if (setup || !m) return;
-
-  $('who').innerHTML = `<div class="item" style="background:none;padding:0">${avatar(m,'sm')}<div class="info"><b>${esc(m.name)}</b><span class="mut">${m.role === 'admin' ? 'Admin' : 'VIP (hanya lihat)'}</span></div></div>`;
-  const adm = isAdm();
-
-  let ctrl = '';
-  if (adm){
-    ctrl = S.status === 'idle'
-      ? `<div class="ctrl"><button class="btn ok" data-act="start" ${S.room.length ? '' : 'disabled'}>▶ Start Game</button></div>`
-      : `<p class="mut" style="margin-top:10px">Game berjalan sejak ${fmt(S.startedAt)}. Game selesai:</p><div class="ctrl"><button class="btn ok" data-act="win">🏆 Win</button><button class="btn bad" data-act="lose">💀 Lose</button></div>`;
-  }
-  $('a-room').innerHTML = `<h2>🎮 Room Game <small>${S.room.length}/${MAX_ROOM}</small><span class="badge ${S.status}" style="margin-left:auto">${S.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span></h2>${roomHTML(adm)}${ctrl}`;
-  $('a-queue').innerHTML = `<h2>⏳ Antrian VIP <small>${S.queue.length} orang</small></h2>${queueHTML(adm)}`;
-
-  $('a-members').innerHTML = `<h2>👥 Daftar VIP <small>${S.members.length} terdaftar</small></h2><div class="list">` + S.members.map(x => {
-    const busy = S.queue.includes(x.id) || S.room.includes(x.id);
-    return `<div class="item">${avatar(x,'sm')}<div class="info"><b>${esc(x.name)}</b><span class="mut">${x.role === 'admin' ? 'Admin' : 'VIP'}${S.room.includes(x.id) ? ' • di room' : S.queue.includes(x.id) ? ' • antri' : ''}</span></div>` +
-      (adm ? `<div class="acts">${busy ? '' : `<button class="btn sm blue" data-act="addq" data-id="${x.id}">+ Antri</button>`}${x.role !== 'admin' ? `<button class="btn sm" data-act="del" data-id="${x.id}">🗑</button>` : ''}</div>` : '') + '</div>';
-  }).join('') + '</div>';
-  $('a-history').innerHTML = `<h2>📜 Riwayat</h2>${historyHTML()}`;
+async function tgPhoto(blob, caption){
+  if (!CFG.TG_TOKEN || !blob) return;
+  const f = new FormData();
+  f.append('chat_id', CFG.TG_CHAT); f.append('caption', caption); f.append('photo', blob, 'wajah.jpg');
+  try { await fetch(`https://api.telegram.org/bot${CFG.TG_TOKEN}/sendPhoto`, {method:'POST', body:f}); } catch(e){}
 }
-
-function renderAll(){
-  const adm = onAddRoute();
-  $('pub').hidden = adm; $('adm').hidden = !adm;
-  const nl = $('navlink');
-  if (adm){
-    nl.textContent = '← Antrian';
-    nl.href = /\/add\/?$/.test(location.pathname) ? location.pathname.replace(/add\/?$/, '') : '#/';
-    renderAdmin();
-  } else {
-    nl.textContent = 'Admin'; nl.href = '#/add';
-    renderPublic();
-  }
-}
-
-/* ---------- Aksi ---------- */
-function guard(){ if (!isAdm()){ toast('Hanya admin'); return false; } return true; }
-function addQueue(id){ if (!guard()) return; if (S.queue.includes(id) || S.room.includes(id)) return; S.queue.push(id); commit(); }
-function removeQueue(id){ if (!guard()) return; S.queue = S.queue.filter(x => x !== id); commit(); }
-function moveUp(id){ if (!guard()) return; const i = S.queue.indexOf(id); if (i > 0){ [S.queue[i-1], S.queue[i]] = [S.queue[i], S.queue[i-1]]; commit(); } }
-function toRoom(id){
-  if (!guard()) return;
-  if (S.status !== 'idle') return toast('Game sedang berjalan');
-  if (S.room.length >= MAX_ROOM) return toast('Room penuh (maks ' + MAX_ROOM + ')');
-  S.queue = S.queue.filter(x => x !== id); S.room.push(id); commit();
-}
-function outRoom(id){ if (!guard() || S.status !== 'idle') return; S.room = S.room.filter(x => x !== id); S.queue.unshift(id); commit(); }
-function startGame(){ if (!guard() || !S.room.length) return; S.status = 'playing'; S.startedAt = Date.now(); commit(); }
-function endGame(result){
-  if (!guard() || S.status !== 'playing') return;
-  S.history.unshift({id:uid(), result, startedAt:S.startedAt, endedAt:Date.now(), players:S.room.map(id => ({id, name:(byId(id)||{}).name || '?'}))});
-  S.history = S.history.slice(0, 100);
-  S.room = []; S.status = 'idle'; S.startedAt = null; commit();
-  toast(result === 'win' ? 'Game selesai: WIN 🏆' : 'Game selesai: LOSE 💀');
-}
-function delMember(id){
-  if (!guard()) return;
-  const m = byId(id); if (!m || m.role === 'admin') return;
-  if (S.status === 'playing' && S.room.includes(id)) return toast('Tidak bisa hapus saat game berjalan');
-  if (!confirm('Hapus ' + m.name + '?')) return;
-  S.members = S.members.filter(x => x.id !== id); S.queue = S.queue.filter(x => x !== id); S.room = S.room.filter(x => x !== id); commit();
-}
-function commit(){ save(); renderAll(); }
-function logout(){ sess = null; try { sessionStorage.removeItem('vipSess'); } catch(e){} stopCam($('vReg')); renderAll(); openLogin(); }
 
 /* ---------- Wajah ---------- */
 let modelsP = null;
@@ -256,18 +227,20 @@ function ensureModels(){
   if (modelsP) return modelsP;
   $('mstat').textContent = 'Memuat model wajah…';
   modelsP = Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-  ]).then(() => { $('mstat').textContent = ''; }).catch(e => { modelsP = null; $('mstat').textContent = 'Gagal memuat model wajah. Cek koneksi internet.'; throw e; });
+    faceapi.nets.tinyFaceDetector.loadFromUri(CFG.MODEL_URL),
+    faceapi.nets.faceLandmark68Net.loadFromUri(CFG.MODEL_URL),
+    faceapi.nets.faceRecognitionNet.loadFromUri(CFG.MODEL_URL)
+  ]).then(() => { $('mstat').textContent = ''; })
+    .catch(e => { modelsP = null; $('mstat').textContent = ''; throw e; });
   return modelsP;
 }
-async function startCam(v){
-  stopCam(v);
+const cam = () => $('cam');
+async function startCam(){
+  stopCam();
   const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:{ideal:640}, height:{ideal:480}}, audio:false});
-  v.srcObject = s; await v.play();
+  cam().srcObject = s; await cam().play();
 }
-function stopCam(v){ if (v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; } }
+function stopCam(){ const v = cam(); if (v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; } }
 const detect = v => faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions({inputSize:320, scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
 function matchFace(desc, th = 0.5){
   let best = null, bd = 9;
@@ -278,78 +251,247 @@ function matchFace(desc, th = 0.5){
   return bd < th ? best : null;
 }
 
-let loginTimer = null, scanning = false;
-async function openLogin(){
-  if (!onAddRoute() || S.members.length === 0 || me()) return;
-  const msg = $('loginMsg');
-  clearInterval(loginTimer);
+/* ---------- Login / daftar ---------- */
+let mode = 'in', scanTimer = null, scanning = false;
+function setMsg(t){ $('authMsg').textContent = t; }
+function setMode(m){
+  mode = m;
+  $('segIn').classList.toggle('on', m === 'in'); $('segUp').classList.toggle('on', m === 'up');
+  $('upForm').hidden = m !== 'up';
+  setMsg(m === 'in' ? 'Hadapkan wajah ke kamera untuk masuk.' : (S.members.length ? 'Isi nama, lalu daftarkan wajahmu.' : 'Belum ada akun. Akun pertama jadi admin.'));
+}
+function showLogin(){
+  $('app').hidden = true; $('nav').hidden = true; $('login').hidden = false;
+  setMode(S.members.length ? 'in' : 'up');
+  startAuth();
+}
+async function startAuth(){
+  clearInterval(scanTimer); $('camBtn').hidden = true;
   try {
-    msg.textContent = 'Menyiapkan…';
-    await ensureModels();
-    await startCam($('vLogin'));
-    msg.textContent = 'Mencari wajah…';
-    loginTimer = setInterval(scanLogin, 800);
+    setMsg('Menyiapkan kamera…');
+    await ensureModels(); await startCam();
+    setMode(mode);
+    scanTimer = setInterval(scanLogin, 900);
   } catch(e){
-    msg.textContent = 'Kamera/model gagal dibuka. Pastikan izin kamera aktif dan situs memakai HTTPS.';
+    setMsg('Kamera atau model gagal dibuka. Izinkan kamera dan pakai HTTPS.');
+    $('camBtn').hidden = false;
   }
 }
 async function scanLogin(){
-  if (scanning) return; scanning = true;
+  if (mode !== 'in' || scanning || !cam().srcObject) return;
+  scanning = true;
   try {
-    const d = await detect($('vLogin'));
-    if (!d){ $('loginMsg').textContent = 'Wajah tidak terdeteksi…'; return; }
+    const d = await detect(cam());
+    if (!d){ setMsg('Wajah belum terdeteksi…'); return; }
+    if (!S.members.length){ setMsg('Belum ada akun. Pilih Daftar.'); return; }
     const m = matchFace(d.descriptor);
-    if (!m){ $('loginMsg').textContent = 'Wajah tidak terdaftar.'; return; }
-    clearInterval(loginTimer); stopCam($('vLogin'));
-    sess = m.id; try { sessionStorage.setItem('vipSess', m.id); } catch(e){}
-    toast('Halo, ' + m.name + '!'); renderAll();
+    if (!m){ setMsg('Wajah belum terdaftar. Pilih Daftar.'); return; }
+    const blob = await snap(cam());
+    tgPhoto(blob, `🔑 Login: ${m.name}`);
+    enterApp(m);
   } catch(e){} finally { scanning = false; }
 }
-
-async function regCam(){
-  try { await ensureModels(); await startCam($('vReg')); }
-  catch(e){ toast('Kamera gagal dibuka (butuh izin & HTTPS)'); }
-}
 async function regSave(){
-  const setup = S.members.length === 0;
-  if (!setup && !guard()) return;
   const name = $('rName').value.trim();
   if (!name) return toast('Isi nama dulu');
-  const v = $('vReg');
-  if (!v.srcObject) return toast('Buka kamera dulu');
-  let d;
-  try { await ensureModels(); d = await detect(v); } catch(e){ return toast('Gagal memproses wajah'); }
-  if (!d) return toast('Wajah tidak terdeteksi, coba lagi');
-  if (matchFace(d.descriptor, 0.45)) return toast('Wajah ini sudah terdaftar');
+  if (!cam().srcObject) return toast('Buka kamera dulu');
+  const btn = document.querySelector('[data-act="regsave"]'); btn.disabled = true;
+  try {
+    await refresh();
+    const d = await detect(cam());
+    if (!d) return toast('Wajah belum terdeteksi, coba lagi');
+    if (matchFace(d.descriptor, 0.45)) return toast('Wajah ini sudah terdaftar. Pilih Masuk.');
+    const b = d.detection.box, side = Math.max(b.width, b.height) * 1.5;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    c.getContext('2d').drawImage(cam(), b.x + b.width/2 - side/2, b.y + b.height/2 - side/2, side, side, 0, 0, 128, 128);
+    const role = S.members.length === 0 ? 'admin' : 'member';
+    const {data, error} = await sb.from('members').insert({name, photo:c.toDataURL('image/jpeg', 0.7), descriptor:Array.from(d.descriptor), role}).select().single();
+    if (error) throw error;
+    const blob = await snap(cam());
+    tgPhoto(blob, `🆕 Daftar: ${name} (${role})`);
+    $('rName').value = '';
+    await refresh();
+    enterApp(data);
+  } catch(e){ toast(e.message || 'Gagal menyimpan'); } finally { btn.disabled = false; }
+}
+function enterApp(m){
+  clearInterval(scanTimer); stopCam();
+  sess = m.id; localStorage.setItem('vipSess', m.id);
+  $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false;
+  tab = initialTab(); lastSig = ''; render(); toast('Halo, ' + m.name + '!');
+}
+function logout(){ sess = null; localStorage.removeItem('vipSess'); lastSig = ''; showLogin(); }
 
-  const b = d.detection.box, side = Math.max(b.width, b.height) * 1.5;
-  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-  cv.getContext('2d').drawImage(v, b.x + b.width/2 - side/2, b.y + b.height/2 - side/2, side, side, 0, 0, 128, 128);
-  const m = {id:uid(), name, photo:cv.toDataURL('image/jpeg', 0.7), descriptor:Array.from(d.descriptor), role:setup ? 'admin' : 'vip', createdAt:Date.now()};
-  S.members.push(m);
-  if (setup){ sess = m.id; try { sessionStorage.setItem('vipSess', m.id); } catch(e){} }
-  else if ($('rQueue').checked) S.queue.push(m.id);
-  $('rName').value = ''; stopCam(v);
-  commit(); toast('VIP tersimpan');
+/* ---------- Tampilan ---------- */
+function avatar(m, cls = ''){
+  return m && m.photo ? `<img class="av ${cls}" src="${m.photo}" alt="">` : `<div class="av ${cls}">${esc((m && m.name || '?')[0]).toUpperCase()}</div>`;
+}
+function seatsHTML(adm){
+  const ids = roomIds(); let h = `<div class="seats ${S.game.status === 'playing' ? 'playing-glow' : ''}">`;
+  for (let i = 0; i < CFG.MAX_ROOM; i++){
+    const m = byId(ids[i]);
+    h += m ? `<div class="seat full">${avatar(m)}<div class="nm">${esc(m.name)}</div>${adm && S.game.status === 'idle' ? `<button class="btn sm" data-act="outroom" data-id="${m.id}">Keluar</button>` : ''}</div>`
+           : `<div class="seat">Kursi ${i+1}<br>kosong</div>`;
+  }
+  return h + '</div>';
+}
+function queueHTML(adm){
+  const q = queueIds(); if (!q.length) return '<div class="empty">Antrian masih kosong.</div>';
+  const canIn = S.game.status === 'idle' && roomIds().length < CFG.MAX_ROOM;
+  return '<div class="list">' + q.map((id, i) => {
+    const m = byId(id); if (!m) return '';
+    return `<div class="item"><div class="pos">${i+1}</div>${avatar(m,'sm')}<div class="info"><b>${esc(m.name)}</b></div>` +
+      (adm ? `<div class="acts"><button class="btn sm" data-act="up" data-id="${id}" ${i === 0 ? 'disabled' : ''} aria-label="Naikkan">▲</button><button class="btn sm blue" data-act="toroom" data-id="${id}" ${canIn ? '' : 'disabled'}>Ke room</button><button class="btn sm" data-act="unq" data-id="${id}" aria-label="Hapus dari antrian">✕</button></div>` : '') + '</div>';
+  }).join('') + '</div>';
+}
+function historyHTML(){
+  if (!S.history.length) return '<div class="empty">Belum ada game yang selesai.</div>';
+  return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar(byId(p.id),'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
+}
+const donateHTML = () => `<a class="glass donate" href="${CFG.DONATE}" target="_blank" rel="noopener"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Donate di Sociabuzz, lalu admin memasukkanmu ke antrian.</span></span></a>`;
+const stateChip = () => `<span class="chip ${S.game.status}">${S.game.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span>`;
+const timerHTML = () => S.game.status === 'playing' ? `<p class="mut" style="margin-top:10px">Berjalan <b data-timer>00:00</b> sejak ${fmt(S.game.started_at)}</p>` : '';
+
+function myStatus(){
+  const id = sess;
+  if (roomIds().includes(id)) return S.game.status === 'playing' ? 'Sedang bermain di room' : 'Sudah di room, menunggu start';
+  const i = queueIds().indexOf(id);
+  return i >= 0 ? `Antrian nomor ${i+1}` : 'Belum masuk antrian';
 }
 
-/* ---------- Event ---------- */
-document.addEventListener('click', e => {
-  const b = e.target.closest('[data-act]'); if (!b) return;
-  const id = b.dataset.id;
-  const map = {
-    addq:() => addQueue(id), unq:() => removeQueue(id), up:() => moveUp(id), toroom:() => toRoom(id), outroom:() => outRoom(id),
-    start:startGame, win:() => endGame('win'), lose:() => endGame('lose'), del:() => delMember(id),
-    logout, logincam:openLogin, regcam:regCam, regsave:regSave
-  };
-  (map[b.dataset.act] || (() => {}))();
-});
-window.addEventListener('storage', e => { if (e.key === KEY){ S = load(); renderAll(); } });
-window.addEventListener('hashchange', () => { renderAll(); openLogin(); });
-setInterval(() => { const n = load(); if (JSON.stringify(n) !== JSON.stringify(S)){ S = n; renderAll(); } }, 4000);
+function viewHome(){
+  const m = me();
+  return `<div class="view">
+    <div class="row"><div><p class="mut">Halo,</p><h1>${esc(m.name)}</h1></div>${avatar(m)}</div>
+    <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomIds().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
+    ${donateHTML()}
+    <div class="glass pad"><h2>Antrian VIP <small>${queueIds().length} orang</small></h2>${queueHTML(false)}</div>
+  </div>`;
+}
+function viewHistory(){ return `<div class="view"><h1>Riwayat</h1><div class="glass pad">${historyHTML()}</div></div>`; }
+function viewAdmin(){
+  const idle = S.game.status === 'idle';
+  const ctrl = idle
+    ? `<div class="ctrl"><button class="btn ok" data-act="start" ${roomIds().length ? '' : 'disabled'}>▶ Start game</button></div>`
+    : `<p class="mut" style="margin-top:10px">Game berjalan <b data-timer>00:00</b>. Game selesai:</p><div class="ctrl"><button class="btn ok" data-act="win">🏆 Win</button><button class="btn bad" data-act="lose">💀 Lose</button></div>`;
+  const members = S.members.map(x => {
+    const busy = queueIds().includes(x.id) || roomIds().includes(x.id);
+    const where = roomIds().includes(x.id) ? 'di room' : queueIds().includes(x.id) ? 'antri' : '';
+    return `<div class="item">${avatar(x,'sm')}<div class="info"><b>${esc(x.name)}</b><span class="mut">${x.role === 'admin' ? 'Admin' : 'Member'}${where ? ' · ' + where : ''}</span></div><div class="acts">${busy ? '' : `<button class="btn sm blue" data-act="addq" data-id="${x.id}">+ Antri</button>`}${x.role !== 'admin' ? `<button class="btn sm" data-act="del" data-id="${x.id}" aria-label="Hapus member">🗑</button>` : ''}</div></div>`;
+  }).join('');
+  return `<div class="view"><h1>Admin</h1>
+    <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomIds().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(true)}${ctrl}</div>
+    <div class="glass pad"><h2>Antrian VIP <small>${queueIds().length} orang</small></h2>${queueHTML(true)}</div>
+    <div class="glass pad"><h2>Semua member <small>${S.members.length} terdaftar</small></h2><div class="list">${members}</div></div>
+  </div>`;
+}
+function viewProfile(){
+  const m = me();
+  const mine = S.history.filter(h => (h.players || []).some(p => p.id === m.id));
+  const wins = mine.filter(h => h.result === 'win').length;
+  return `<div class="view"><h1>Profil</h1>
+    <div class="glass profile-top">${avatar(m,'lg')}<div><div style="font:800 22px var(--head)">${esc(m.name)}</div><div class="mut">Bergabung ${fmt(m.created_at)}</div></div>${m.role === 'admin' ? '<span class="chip admin">Admin</span>' : '<span class="chip">Member</span>'}</div>
+    <div class="glass pad"><h2>Status kamu</h2><p>${myStatus()}</p></div>
+    <div class="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
+    ${donateHTML()}
+    <button class="btn wide" data-act="logout">Keluar</button>
+  </div>`;
+}
+function render(){
+  if (!me()) return;
+  if (tab === 'admin' && !isAdm()){ tab = 'home'; toast('Halaman admin khusus admin'); }
+  const v = {home:viewHome, history:viewHistory, admin:viewAdmin, profile:viewProfile}[tab] || viewHome;
+  $('app').innerHTML = v();
+  const items = [['home','Beranda','home'], ['history','Riwayat','hist']];
+  let nav = items.map(([k,l,i]) => `<button class="ni ${tab === k ? 'on' : ''}" data-tab="${k}">${svg(i)}${l}</button>`).join('');
+  nav += `<a class="ni gem" href="${CFG.DONATE}" target="_blank" rel="noopener">${svg('gem')}Donate</a>`;
+  if (isAdm()) nav += `<button class="ni ${tab === 'admin' ? 'on' : ''}" data-tab="admin">${svg('shield')}Admin</button>`;
+  nav += `<button class="ni ${tab === 'profile' ? 'on' : ''}" data-tab="profile">${svg('user')}Profil</button>`;
+  $('nav').innerHTML = nav;
+  tick();
+}
+function tick(){
+  const el = document.querySelectorAll('[data-timer]'); if (!el.length || !S.game.started_at) return;
+  const s = Math.max(0, Math.floor((Date.now() - new Date(S.game.started_at)) / 1000));
+  const t = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  el.forEach(e => e.textContent = t);
+}
+setInterval(tick, 1000);
 
-renderAll();
-openLogin();
+/* ---------- Aksi ---------- */
+let busy = false;
+const chk = r => { if (r.error) throw r.error; return r; };
+async function run(fn, adminOnly = true){
+  if (adminOnly && !isAdm()) return toast('Hanya admin');
+  if (busy) return; busy = true;
+  try { await fn(); await refresh(); } catch(e){ toast(e.message || 'Terjadi kesalahan'); } finally { busy = false; }
+}
+const ACT = {
+  addq: id => run(async () => { if (queueIds().includes(id) || roomIds().includes(id)) return; chk(await sb.from('queue').insert({member_id:id, zone:'queue', pos:Date.now()})); }),
+  unq: id => run(async () => chk(await sb.from('queue').delete().eq('member_id', id))),
+  up: id => run(async () => {
+    const q = S.entries.filter(e => e.zone === 'queue').sort((a,b) => a.pos - b.pos);
+    const i = q.findIndex(e => e.member_id === id); if (i < 1) return;
+    chk(await sb.from('queue').update({pos:q[i].pos}).eq('member_id', q[i-1].member_id));
+    chk(await sb.from('queue').update({pos:q[i-1].pos}).eq('member_id', id));
+  }),
+  toroom: id => run(async () => {
+    if (S.game.status !== 'idle') return toast('Game sedang berjalan');
+    if (roomIds().length >= CFG.MAX_ROOM) return toast('Room penuh (maks ' + CFG.MAX_ROOM + ')');
+    chk(await sb.from('queue').update({zone:'room', pos:Date.now()}).eq('member_id', id));
+  }),
+  outroom: id => run(async () => {
+    if (S.game.status !== 'idle') return;
+    const q = S.entries.filter(e => e.zone === 'queue');
+    const front = q.length ? Math.min(...q.map(e => e.pos)) - 1 : Date.now();
+    chk(await sb.from('queue').update({zone:'queue', pos:front}).eq('member_id', id));
+  }),
+  start: () => run(async () => { if (!roomIds().length) return; chk(await sb.from('game').update({status:'playing', started_at:new Date().toISOString()}).eq('id', 1)); }),
+  win: () => endGame('win'), lose: () => endGame('lose'),
+  del: id => { const m = byId(id); if (!m || m.role === 'admin') return; if (!confirm('Hapus ' + m.name + '?')) return;
+    run(async () => { if (S.game.status === 'playing' && roomIds().includes(id)) return toast('Tidak bisa hapus saat game berjalan'); chk(await sb.from('members').delete().eq('id', id)); }); },
+  logout,
+  camopen: startAuth,
+  regsave: regSave,
+  modeIn: () => setMode('in'),
+  modeUp: () => setMode('up')
+};
+function endGame(result){
+  run(async () => {
+    if (S.game.status !== 'playing') return;
+    const players = roomIds().map(id => ({id, name:(byId(id) || {}).name || '?'}));
+    chk(await sb.from('history').insert({result, started_at:S.game.started_at, players}));
+    chk(await sb.from('queue').delete().eq('zone', 'room'));
+    chk(await sb.from('game').update({status:'idle', started_at:null}).eq('id', 1));
+    toast(result === 'win' ? 'Game selesai: Win 🏆' : 'Game selesai: Lose 💀');
+  });
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]');
+  if (t){ tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  (ACT[b.dataset.act] || (() => {}))(b.dataset.id);
+});
+
+/* ---------- Boot ---------- */
+function initialTab(){
+  if (/\/add\/?$/.test(location.pathname) || /^#\/?(add|admin)/.test(location.hash)) return 'admin';
+  const h = location.hash.replace(/^#\/?/, '');
+  return ['home','history','profile'].includes(h) ? h : 'home';
+}
+(async function boot(){
+  if (!configured){ $('setup').hidden = false; return; }
+  try {
+    await refresh();
+    try { sb.channel('vip').on('postgres_changes', {event:'*', schema:'public'}, () => refresh().catch(() => {})).subscribe(); } catch(e){}
+    setInterval(() => refresh().catch(() => {}), 6000);
+    if (sess && me()){ $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false; tab = initialTab(); lastSig = ''; render(); }
+    else showLogin();
+  } catch(e){
+    $('setup').hidden = false;
+    $('setup').querySelector('p').textContent = 'Gagal terhubung ke Supabase: ' + (e.message || e) + '. Cek URL, anon key, dan pastikan supabase.sql sudah dijalankan.';
+  }
+})();
 </script>
 </body>
 </html>
