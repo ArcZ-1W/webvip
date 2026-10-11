@@ -171,6 +171,7 @@ input[type=text]::placeholder{color:var(--mut)}
       <button id="segUp" data-act="modeUp">Daftar</button>
     </div>
     <div id="inForm" class="fp"><button class="fpbtn" id="fpIn" data-act="loginfp" aria-label="Masuk dengan sidik jari"><svg viewBox="0 0 24 24"><path d="M12 11v3a8 8 0 0 1-1.6 4.8"/><path d="M8 11a4 4 0 0 1 8 0v1a12 12 0 0 1-2.4 7.2"/><path d="M5 12v-1a7 7 0 0 1 14 0v1c0 2-.3 3.8-.9 5.5"/><path d="M5 16c.2 1.6.6 3 1.2 4.2"/><path d="M9 21c-.6-1-1-2.2-1.2-3.5"/></svg></button></div>
+    <button class="linkbtn" id="otherAcc" data-act="otheracc" hidden style="align-self:center">Masuk dengan akun lain</button>
     <p id="authMsg">Memuat…</p>
     <div id="upForm" hidden>
       <input type="text" id="rName" placeholder="Nama kamu (dipakai juga saat donate)" maxlength="30" autocomplete="off">
@@ -278,21 +279,33 @@ function setMsg(t){ $('authMsg').textContent = t; }
 function setMode(m){
   mode = m;
   $('segIn').classList.toggle('on', m === 'in'); $('segUp').classList.toggle('on', m === 'up');
-  $('upForm').hidden = m !== 'up'; $('inForm').hidden = m !== 'in';
+  $('upForm').hidden = m !== 'up'; $('inForm').hidden = m !== 'in'; $('otherAcc').hidden = m !== 'in' || !getSavedCred();
   if (!fpOk()) return setMsg('Sidik jari butuh HTTPS dan perangkat dengan sensor/kunci layar.');
   setMsg(m === 'in' ? 'Tap ikon sidik jari untuk masuk.' : 'Isi nama lalu tekan tombol daftar dengan sidik jari.');
 }
 function showLogin(){ $('app').hidden = true; $('nav').hidden = true; $('login').hidden = false; setMode('in'); }
 function showApp(){ $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false; }
 
-async function loginFp(){
+const getSavedCred = () => { try { return localStorage.getItem('vipCred'); } catch(e){ return null; } };
+const setSavedCred = v => { try { v ? localStorage.setItem('vipCred', v) : localStorage.removeItem('vipCred'); } catch(e){} };
+async function loginFp(silent){
   if (!fpOk()) return setMode('in');
   const btn = $('fpIn'); btn.disabled = true; setMsg('Menunggu sidik jari…');
+  const pk = {challenge: rnd(32), userVerification:'required', timeout:60000};
+  // Perangkat ini ingat akunnya: langsung minta sidik jari, tanpa pop up pilih kunci sandi.
+  const saved = getSavedCred();
+  if (saved){ try { pk.allowCredentials = [{type:'public-key', id: unb64u(saved)}]; } catch(e){ setSavedCred(null); } }
   try {
-    const cred = await navigator.credentials.get({publicKey:{challenge:rnd(32), userVerification:'required', timeout:60000}});
-    const res = await rpc('login_passkey', {p_cred: b64u(cred.rawId)});
+    const cred = await navigator.credentials.get({publicKey: pk});
+    const id = b64u(cred.rawId);
+    const res = await rpc('login_passkey', {p_cred: id});
+    setSavedCred(id);
     await enterApp(res);
-  } catch(e){ setMsg(fpErr(e)); } finally { btn.disabled = false; }
+  } catch(e){
+    if (/belum terdaftar/.test((e && e.message) || '')) setSavedCred(null);
+    setMsg(silent ? 'Tap ikon sidik jari untuk masuk.' : fpErr(e));
+    $('otherAcc').hidden = !getSavedCred();
+  } finally { btn.disabled = false; }
 }
 let fpTimer = null;
 function fpAsk(){
@@ -329,6 +342,7 @@ async function regSave(){
       timeout: 60000
     }});
     const res = await rpc('register_member', {p_name: name, p_cred: b64u(cred.rawId)});
+    setSavedCred(b64u(cred.rawId));
     $('rName').value = '';
     await enterApp(res);
   } catch(e){ toast(fpErr(e)); } finally { btn.disabled = false; }
@@ -507,7 +521,7 @@ const ACT = {
     const msg = self ? 'Hapus AKUNMU sendiri? Kamu akan keluar dan tidak bisa masuk lagi dengan sidik jari ini.' + (last ? '\n\nKamu admin terakhir: setelah ini tidak ada admin sampai kamu atur lewat SQL.' : '') : 'Hapus akun ' + m.name + '?';
     if (!confirm(msg)) return;
     if (self){
-      try { await rpc('admin_delete_member', {p_token:token, p_member:id}); await doLogout(false); toast('Akunmu sudah dihapus'); }
+      try { await rpc('admin_delete_member', {p_token:token, p_member:id}); setSavedCred(null); await doLogout(false); toast('Akunmu sudah dihapus'); }
       catch(e){ toast(e.message || 'Gagal menghapus akun'); }
       return;
     }
@@ -530,7 +544,8 @@ const ACT = {
   histno: () => { $('hist').hidden = true; },
   sawergo: () => { $('warn').hidden = true; openSawer(); },
   warnno: () => { $('warn').hidden = true; },
-  loginfp: loginFp,
+  loginfp: () => loginFp(),
+  otheracc: () => { setSavedCred(null); $('otherAcc').hidden = true; loginFp(); },
   regsave: fpAsk,
   fpno: fpClose,
   fpgo: () => { if ($('fpGo').disabled) return; fpClose(); regSave(); },
@@ -700,6 +715,7 @@ function initialTab(){
     }
     setInterval(poll, 4000);
     showLogin();
+    if (getSavedCred()) loginFp(true);
   } catch(e){
     $('setup').hidden = false;
     $('setup').querySelector('p').textContent = 'Gagal terhubung ke Supabase: ' + (e.message || e) + '. Cek URL, anon key, dan pastikan supa.sql sudah dijalankan.';
