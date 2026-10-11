@@ -109,21 +109,26 @@ input[type=text]{width:100%;background:rgba(255,255,255,.08);border:1px solid va
 input[type=text]::placeholder{color:var(--mut)}
 .note{background:rgba(242,208,138,.10);border:1px solid rgba(242,208,138,.35);border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.55}
 .note b{display:block;font:700 14px var(--head);margin-bottom:4px;color:var(--gold)}
-.note.warn{background:rgba(255,122,144,.10);border-color:rgba(255,122,144,.4)}
-.note.warn b{color:var(--bad)}
 .chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--mut);cursor:pointer}
 .chk input{margin-top:3px;width:18px;height:18px;accent-color:var(--gold);flex:none}
 .setup{padding:20px;max-width:420px}
 .setup code{background:rgba(255,255,255,.12);padding:1px 6px;border-radius:6px;font-size:13px}
 
+#tour{position:fixed;inset:0;z-index:80}
+#tour.dim{background:rgba(8,10,25,.80)}
+#tourHole{position:fixed;border-radius:16px;border:2px solid var(--gold);box-shadow:0 0 0 9999px rgba(8,10,25,.80);pointer-events:none;transition:left .25s,top .25s,width .25s,height .25s}
+#tourBox{position:fixed;width:min(88vw,340px);padding:16px;background:rgba(24,28,52,.94)}
+#tourBox h3{font:800 18px var(--head);margin-bottom:6px}
+#tourBox p{font-size:14px;color:var(--tx);line-height:1.55}
+#tourBox .hint{color:var(--mut);font-size:12px;margin-top:6px}
+#tourBox .tnav{display:flex;align-items:center;gap:8px;margin-top:14px}
+#tourBox .tnav .grow{flex:1}
+#tourBox .cnt{font-size:12px;color:var(--mut)}
+.linkbtn{background:none;border:0;color:var(--mut);font-size:13px;cursor:pointer;padding:6px}
+@media (prefers-reduced-motion:reduce){#tourHole{transition:none}}
 #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-20px);padding:10px 16px;border-radius:99px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90%;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 #mstat{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 4px);text-align:center;font-size:12px;color:var(--mut);pointer-events:none}
-
-/* Indikator scan wajah */
-.scan-badge{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:99px;backdrop-filter:blur(6px)}
-.scan-badge.ok{background:rgba(79,227,181,.85);color:#06382a}
-.scan-badge.bad{background:rgba(255,122,144,.9);color:#46101b}
 </style>
 </head>
 <body>
@@ -142,16 +147,13 @@ input[type=text]::placeholder{color:var(--mut)}
       <button id="segIn" class="on" data-act="modeIn">Masuk</button>
       <button id="segUp" data-act="modeUp">Daftar</button>
     </div>
-    <div class="cam">
-      <video id="cam" playsinline muted></video>
-      <div id="scanBadge" class="scan-badge" hidden></div>
-    </div>
+    <div class="cam"><video id="cam" playsinline muted></video></div>
     <p id="authMsg">Memuat…</p>
     <div id="upForm" hidden>
       <input type="text" id="rName" placeholder="Nama kamu" maxlength="30" autocomplete="off">
       <div class="note">
         <b>Tentang wajahmu</b>
-        Wajah didaftarkan untuk login dan mencegah akun ganda. <b>Satu wajah = satu akun.</b> Foto wajah hanya dikirim ke admin untuk verifikasi. Wajahmu tidak akan disebar, tidak ditampilkan ke pengguna lain, dan tidak akan disalahgunakan. Mohon dimengerti.
+        Wajah didaftarkan untuk login dan mencegah akun ganda. Foto wajah hanya dikirim ke admin untuk verifikasi. Wajahmu tidak akan disebar, tidak ditampilkan ke pengguna lain, dan tidak akan disalahgunakan. Mohon dimengerti.
       </div>
       <label class="chk"><input type="checkbox" id="rAgree"> Saya mengerti dan setuju wajah saya didaftarkan dengan ketentuan di atas.</label>
       <button class="btn gold wide" data-act="regsave">Daftarkan wajah</button>
@@ -162,6 +164,7 @@ input[type=text]::placeholder{color:var(--mut)}
 
 <main id="app" hidden></main>
 <nav id="nav" class="glass" hidden></nav>
+<div id="tour" hidden><div id="tourHole" hidden></div><div id="tourBox" class="glass" role="dialog" aria-live="polite"></div></div>
 <div id="toast" class="glass"></div>
 <div id="mstat"></div>
 
@@ -176,8 +179,7 @@ const CFG = {
   TG_CHAT: '7879487826',
   DONATE: 'https://sociabuzz.com/zixixiangxiang/tribe',
   MODEL_URL: 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/',
-  MAX_ROOM: 4,
-  FACE_THRESHOLD: 0.55   // <-- sama dengan yang di SQL. Makin kecil = makin ketat.
+  MAX_ROOM: 4
 };
 /* ================================================== */
 
@@ -220,7 +222,7 @@ async function refresh(){
   const d = await rpc('get_state', {p_token: token});
   const sig = JSON.stringify([d.me && [d.me.id, d.me.role], d.members, d.entries, d.game, (d.history || []).map(h => h.id)]);
   S = {me:d.me, members:d.members || [], entries:d.entries || [], game:d.game || {status:'idle', started_at:null}, history:d.history || []};
-  if (sig !== lastSig){ lastSig = sig; render(); }
+  if (sig !== lastSig){ lastSig = sig; if (!touring) render(); }
 }
 function poll(){ if (!token) return; refresh().catch(e => { if (isSessionErr(e)) doLogout(false); }); }
 
@@ -262,33 +264,13 @@ async function startCam(){
 function stopCam(){ const v = cam(); if (v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; } }
 const detect = v => faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions({inputSize:320, scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
 
-/* ---------- Cek kemiripan descriptor (client, optional) ---------- */
-function euclid(a, b){
-  let s = 0;
-  for (let i = 0; i < a.length; i++){ const d = a[i] - b[i]; s += d*d; }
-  return Math.sqrt(s);
-}
-// Ambil semua descriptor dari server (khusus untuk cek cepat; server tetap penentu akhir)
-async function fetchAllDescriptors(){
-  try {
-    const rows = await rpc('list_descriptors');  // <-- butuh RPC tambahan, lihat SQL
-    return rows || [];
-  } catch(e){ return []; }
-}
-
 /* ---------- Login / daftar ---------- */
 let mode = 'in', scanTimer = null, scanning = false;
 function setMsg(t){ $('authMsg').textContent = t; }
-function setBadge(txt, cls){
-  const b = $('scanBadge');
-  if (!txt){ b.hidden = true; return; }
-  b.hidden = false; b.className = 'scan-badge ' + (cls || ''); b.textContent = txt;
-}
 function setMode(m){
   mode = m;
   $('segIn').classList.toggle('on', m === 'in'); $('segUp').classList.toggle('on', m === 'up');
   $('upForm').hidden = m !== 'up';
-  setBadge('');
   setMsg(m === 'in' ? 'Hadapkan wajah ke kamera untuk masuk.' : 'Isi nama, baca catatan, lalu daftarkan wajahmu.');
 }
 function showLogin(){
@@ -313,109 +295,51 @@ async function scanLogin(){
   scanning = true;
   try {
     const d = await detect(cam());
-    if (!d){ setBadge('Cari wajah…'); setMsg('Wajah belum terdeteksi…'); return; }
-    setBadge('Wajah terdeteksi ✓', 'ok');
+    if (!d){ setMsg('Wajah belum terdeteksi…'); return; }
     let res;
     try { res = await rpc('login_face', {p_desc: Array.from(d.descriptor)}); }
-    catch(e){
-      const msg = (e && e.message) || '';
-      if (/belum terdaftar/i.test(msg)){
-        setBadge('Belum terdaftar', 'bad');
-        setMsg('Wajah belum terdaftar. Pilih tab "Daftar".');
-      } else {
-        setBadge('Gagal', 'bad');
-        setMsg(msg || 'Gagal masuk');
-      }
-      return;
-    }
+    catch(e){ setMsg(/belum terdaftar/.test(e.message) ? 'Wajah belum terdaftar. Pilih Daftar.' : (e.message || 'Gagal masuk')); return; }
     const blob = await snap(cam());
     tgPhoto(blob, `🔑 Login: ${res.me.name}`);
     await enterApp(res);
   } catch(e){} finally { scanning = false; }
 }
-
 async function regSave(){
   const name = $('rName').value.trim();
   if (name.length < 2) return toast('Isi nama dulu (minimal 2 huruf)');
   if (!$('rAgree').checked) return toast('Centang persetujuan dulu');
   if (!cam().srcObject) return toast('Buka kamera dulu');
-
-  const btn = document.querySelector('[data-act="regsave"]');
-  btn.disabled = true;
-  btn.textContent = 'Memeriksa wajah…';
+  const btn = document.querySelector('[data-act="regsave"]'); btn.disabled = true;
   try {
     const d = await detect(cam());
     if (!d) return toast('Wajah belum terdeteksi, coba lagi');
-    const desc = Array.from(d.descriptor);
-
-    // --- Cek cepat di client (UX): bandingkan dengan semua descriptor yang ada ---
-    setBadge('Cek duplikat…');
-    const existing = await fetchAllDescriptors();
-    let dupe = null, minDist = 999;
-    for (const row of existing){
-      if (!row.face_descriptor) continue;
-      const dist = euclid(desc, row.face_descriptor);
-      if (dist < minDist){ minDist = dist; dupe = row; }
-      if (dist < CFG.FACE_THRESHOLD){ dupe = row; break; }
-    }
-    if (dupe){
-      setBadge('Wajah sudah terdaftar', 'bad');
-      toast(`Wajah ini sudah terdaftar sebagai "${dupe.name}". Satu wajah = satu akun.`);
-      setMsg(`Wajah ini sudah punya akun "${dupe.name}". Silakan pilih tab "Masuk".`);
-      return;
-    }
-    setBadge('Wajah unik ✓', 'ok');
-
-    // --- Crop wajah 128x128 untuk foto verifikasi ---
     const b = d.detection.box, side = Math.max(b.width, b.height) * 1.5;
     const c = document.createElement('canvas'); c.width = c.height = 128;
-    c.getContext('2d').drawImage(
-      cam(),
-      b.x + b.width/2 - side/2,
-      b.y + b.height/2 - side/2,
-      side, side, 0, 0, 128, 128
-    );
-
-    // --- Kirim ke server (server tetap penentu akhir) ---
-    const res = await rpc('register_member', {
-      p_name: name,
-      p_photo: c.toDataURL('image/jpeg', 0.7),
-      p_desc: desc
-    });
-
+    c.getContext('2d').drawImage(cam(), b.x + b.width/2 - side/2, b.y + b.height/2 - side/2, side, side, 0, 0, 128, 128);
+    const res = await rpc('register_member', {p_name:name, p_photo:c.toDataURL('image/jpeg', 0.7), p_desc:Array.from(d.descriptor)});
     const blob = await snap(cam());
     tgPhoto(blob, `🆕 Daftar: ${res.me.name} (${res.me.role})`);
     $('rName').value = ''; $('rAgree').checked = false;
-    setBadge('');
     await enterApp(res);
-  } catch(e){
-    const msg = (e && e.message) || 'Gagal mendaftar';
-    toast(msg);
-    if (/sudah terdaftar sebagai/i.test(msg)){
-      setBadge('Wajah sudah terdaftar', 'bad');
-      setMsg(msg + ' Silakan pilih tab "Masuk".');
-    }
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Daftarkan wajah';
-  }
+  } catch(e){ toast(e.message || 'Gagal mendaftar'); } finally { btn.disabled = false; }
 }
-
 async function enterApp(res){
-  clearInterval(scanTimer); stopCam(); setBadge('');
+  clearInterval(scanTimer); stopCam();
   token = res.token; localStorage.setItem('vipTok', token);
   S = EMPTY(); S.me = res.me; lastSig = '';
   tab = initialTab();
   await refresh();
-  showApp(); render(); toast('Halo, ' + res.me.name + '!');
+  showApp(); render(); toast('Halo, ' + res.me.name + '!'); maybeTour();
 }
 async function doLogout(callServer = true){
   if (callServer && token){ try { await rpc('logout_session', {p_token: token}); } catch(e){} }
   token = null; localStorage.removeItem('vipTok'); S = EMPTY(); lastSig = '';
+  touring = false; $('tour').hidden = true;
   showLogin();
 }
 
 /* ---------- Tampilan ---------- */
+// Foto hanya ada di data milik sendiri (S.me). Semua orang lain tampil sebagai inisial.
 function avatar(m, cls = ''){
   const nm = (m && m.name) || '?';
   if (m && m.photo) return `<img class="av ${cls}" src="${m.photo}" alt="">`;
@@ -450,7 +374,7 @@ function historyHTML(){
   if (!S.history.length) return '<div class="empty">Belum ada game yang selesai.</div>';
   return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar({name:p.name},'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
 }
-const donateHTML = () => `<a class="glass donate" href="${CFG.DONATE}" target="_blank" rel="noopener"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Donate di Sociabuzz, lalu admin menambahkan jumlah game kamu.</span></span></a>`;
+const donateHTML = () => `<a class="glass donate" data-tour="donate" href="${CFG.DONATE}" target="_blank" rel="noopener"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Donate di Sociabuzz, lalu admin menambahkan jumlah game kamu.</span></span></a>`;
 const stateChip = () => `<span class="chip ${S.game.status}">${S.game.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span>`;
 const timerHTML = () => S.game.status === 'playing' ? `<p class="mut" style="margin-top:10px">Berjalan <b data-timer>00:00</b> sejak ${fmt(S.game.started_at)}</p>` : '';
 const myTickets = () => queueEntries().filter(e => e.member_id === S.me.id).length;
@@ -467,9 +391,9 @@ function viewHome(){
   const m = S.me;
   return `<div class="view">
     <div class="row"><div><p class="mut">Halo,</p><h1>${esc(m.name)}</h1></div>${avatar(m)}</div>
-    <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
+    <div class="glass pad" data-tour="room"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
     ${donateHTML()}
-    <div class="glass pad"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(false)}</div>
+    <div class="glass pad" data-tour="queue"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(false)}</div>
   </div>`;
 }
 function viewHistory(){ return `<div class="view"><h1>Riwayat</h1><div class="glass pad">${historyHTML()}</div></div>`; }
@@ -498,8 +422,9 @@ function viewProfile(){
   return `<div class="view"><h1>Profil</h1>
     <div class="glass profile-top">${avatar(m,'lg')}<div><div style="font:800 22px var(--head)">${esc(m.name)}</div><div class="mut">Bergabung ${fmt(m.created_at)}</div></div>${m.role === 'admin' ? '<span class="chip admin">Admin</span>' : '<span class="chip">Member</span>'}<p class="mut">Fotomu hanya terlihat olehmu.</p></div>
     <div class="glass pad"><h2>Status kamu</h2><p>${esc(myStatus())}</p></div>
-    <div class="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
+    <div class="stats" data-tour="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
     ${donateHTML()}
+    <button class="btn wide" data-act="tour">📖 Lihat tutorial lagi</button>
     <button class="btn wide" data-act="logout">Keluar</button>
   </div>`;
 }
@@ -523,7 +448,7 @@ function tick(){
 }
 setInterval(tick, 1000);
 
-/* ---------- Aksi ---------- */
+/* ---------- Aksi (semua divalidasi ulang di server) ---------- */
 let busy = false;
 async function run(fn){
   if (busy) return false; busy = true;
@@ -553,7 +478,11 @@ const ACT = {
   camopen: startAuth,
   regsave: regSave,
   modeIn: () => setMode('in'),
-  modeUp: () => setMode('up')
+  modeUp: () => setMode('up'),
+  tour: () => startTour(),
+  tournext: () => { if (tourI < tourSteps.length - 1){ tourI++; showStep(); } else endTour(); },
+  tourprev: () => { if (tourI > 0){ tourI--; showStep(); } },
+  tourskip: () => endTour()
 };
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-tab]');
@@ -561,6 +490,81 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   (ACT[b.dataset.act] || (() => {}))(b.dataset.id);
 });
+
+/* ---------- Tutorial ---------- */
+let touring = false, tourSteps = [], tourI = 0;
+function buildSteps(){
+  const st = [
+    {tab:'home', title:'Selamat datang 👑', text:'Ini panduan singkat yang menunjukkan fungsi semua tombol. Tap Lanjut untuk mulai.'},
+    {tab:'home', sel:'[data-tour="room"]', title:'Room game', text:'Ada 4 kursi. Di sini terlihat siapa yang sedang main dan statusnya: Menunggu atau Sedang main.'},
+    {tab:'home', sel:'[data-tour="donate"]', title:'Mau jadi VIP?', text:'Tap kartu ini untuk donate di Sociabuzz. Setelah itu admin menambahkan jumlah game VIP kamu.'},
+    {tab:'home', sel:'[data-tour="queue"]', title:'Antrian VIP', text:'Urutan giliran main. Kalau kamu punya beberapa game, tiketnya diselang-seling dengan member lain, misalnya tertulis "Game 2 dari 3".'},
+    {tab:'home', sel:'nav [data-tab="home"]', title:'Beranda', text:'Kembali ke room dan antrian.'},
+    {sel:'nav [data-tab="history"]', title:'Riwayat', text:'Daftar game yang sudah selesai beserta hasil Win atau Lose.'},
+    {sel:'nav .gem', title:'Donate', text:'Pintasan ke halaman donate Sociabuzz untuk join VIP.'},
+    {sel:'nav [data-tab="profile"]', title:'Profil', text:'Lihat statusmu, jumlah game, Win, dan Lose.'},
+    {tab:'profile', sel:'[data-tour="stats"]', title:'Statistik', text:'Total game, Win, dan Lose milikmu.'},
+    {tab:'profile', sel:'[data-act="tour"]', title:'Tutorial', text:'Tap untuk membuka panduan ini lagi kapan saja.'},
+    {tab:'profile', sel:'[data-act="logout"]', title:'Keluar', text:'Keluar dari akun. Masuk lagi cukup dengan wajah.'}
+  ];
+  if (isAdm()) st.push(
+    {tab:'admin', sel:'nav [data-tab="admin"]', title:'Halaman Admin', text:'Tab ini hanya terlihat oleh admin.'},
+    {tab:'admin', sel:'[data-act="addgames"]', title:'+ Game', text:'Tambah jumlah game VIP untuk member. Misalnya 3 game jadi 3 tiket antrian yang terpisah.'},
+    {tab:'admin', sel:'[data-act="toroom"]', title:'Ke room', text:'Pindahkan tiket dari antrian ke room. Maksimal 4 orang, satu orang satu kursi.'},
+    {tab:'admin', sel:'[data-act="up"]', title:'▲ Naikkan', text:'Tukar posisi tiket dengan antrian di atasnya.'},
+    {tab:'admin', sel:'[data-act="unq"]', title:'✕ Hapus tiket', text:'Hapus satu tiket dari antrian.'},
+    {tab:'admin', sel:'[data-act="outroom"]', title:'Keluar dari room', text:'Kembalikan pemain dari room ke antrian paling depan. Hanya bisa sebelum game dimulai.'},
+    {tab:'admin', sel:'[data-act="start"]', title:'Start game', text:'Mulai game setelah room terisi.'},
+    {tab:'admin', sel:'[data-act="win"]', title:'Win dan Lose', text:'Muncul saat game berjalan. Pilih hasil akhir: room dikosongkan dan hasilnya masuk riwayat.'},
+    {tab:'admin', sel:'[data-act="del"]', title:'🗑 Hapus member', text:'Hapus akun member beserta tiket antriannya.'}
+  );
+  st.push({tab:'home', title:'Selesai 🎉', text:'Kamu siap. Panduan bisa dibuka lagi dari menu Profil.'});
+  return st;
+}
+function maybeTour(){
+  if (!S.me) return;
+  let seen = false; try { seen = !!localStorage.getItem('vipTour_' + S.me.id); } catch(e){}
+  if (!seen) setTimeout(() => { if (S.me && !touring) startTour(); }, 600);
+}
+function startTour(){ if (!S.me) return; touring = true; tourSteps = buildSteps(); tourI = 0; $('tour').hidden = false; showStep(); }
+function endTour(){
+  touring = false; $('tour').hidden = true;
+  try { if (S.me) localStorage.setItem('vipTour_' + S.me.id, '1'); } catch(e){}
+  tab = 'home'; render(); window.scrollTo(0, 0);
+}
+function showStep(){
+  const st = tourSteps[tourI];
+  if (st.tab && tab !== st.tab){ tab = st.tab; render(); window.scrollTo(0, 0); }
+  const el = st.sel ? document.querySelector(st.sel) : null;
+  const last = tourI === tourSteps.length - 1;
+  $('tourBox').innerHTML = `<h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>` +
+    (st.sel && !el ? '<p class="hint">Tombol ini belum tampil sekarang karena datanya belum ada. Nanti muncul sendiri.</p>' : '') +
+    `<div class="tnav"><span class="cnt">${tourI + 1}/${tourSteps.length}</span><span class="grow"></span>` +
+    (tourI > 0 ? '<button class="btn sm" data-act="tourprev">Kembali</button>' : '<button class="linkbtn" data-act="tourskip">Lewati</button>') +
+    `<button class="btn sm gold" data-act="tournext">${last ? 'Selesai' : 'Lanjut'}</button></div>`;
+  if (el) el.scrollIntoView({block:'center'});
+  setTimeout(placeTour, 80);
+}
+function placeTour(){
+  if (!touring) return;
+  const st = tourSteps[tourI], el = st.sel ? document.querySelector(st.sel) : null;
+  const hole = $('tourHole'), box = $('tourBox'), wrap = $('tour');
+  if (el){
+    const r = el.getBoundingClientRect(), pad = 6;
+    hole.hidden = false; wrap.classList.remove('dim');
+    Object.assign(hole.style, {left:(r.left - pad) + 'px', top:(r.top - pad) + 'px', width:(r.width + pad * 2) + 'px', height:(r.height + pad * 2) + 'px'});
+    box.style.transform = 'none';
+    const bw = box.offsetWidth, bh = box.offsetHeight, vw = innerWidth, vh = innerHeight;
+    let top = (r.bottom + pad + 12 + bh <= vh - 8) ? r.bottom + pad + 12 : r.top - pad - 12 - bh;
+    top = Math.max(8, Math.min(top, vh - bh - 8));
+    box.style.top = top + 'px';
+    box.style.left = Math.min(Math.max(8, r.left + r.width / 2 - bw / 2), vw - bw - 8) + 'px';
+  } else {
+    hole.hidden = true; wrap.classList.add('dim');
+    box.style.left = '50%'; box.style.top = '50%'; box.style.transform = 'translate(-50%,-50%)';
+  }
+}
+window.addEventListener('resize', placeTour);
 
 /* ---------- Boot ---------- */
 function initialTab(){
@@ -572,7 +576,7 @@ function initialTab(){
   if (!configured){ $('setup').hidden = false; return; }
   try {
     if (token){
-      try { tab = initialTab(); await refresh(); if (S.me){ showApp(); render(); setInterval(poll, 4000); return; } }
+      try { tab = initialTab(); await refresh(); if (S.me){ showApp(); render(); maybeTour(); setInterval(poll, 4000); return; } }
       catch(e){ if (!isSessionErr(e)) throw e; token = null; localStorage.removeItem('vipTok'); }
     }
     setInterval(poll, 4000);
