@@ -114,9 +114,9 @@ input[type=text]::placeholder{color:var(--mut)}
 
 
 /* Popup peringatan donate */
-#warn,#hist,#pick{position:fixed;inset:0;z-index:90;background:rgba(15,35,66,.55);display:flex;align-items:center;justify-content:center;padding:20px}
-#warn .box,#hist .box,#pick .box{width:100%;max-width:360px;padding:22px;display:flex;flex-direction:column;gap:12px}
-#warn h3,#hist h3,#pick h3{font:800 19px var(--font);color:var(--blue2)}
+#warn,#hist,#pick,#fpnote{position:fixed;inset:0;z-index:90;background:rgba(15,35,66,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+#warn .box,#hist .box,#pick .box,#fpnote .box{width:100%;max-width:360px;padding:22px;display:flex;flex-direction:column;gap:12px}
+#warn h3,#hist h3,#pick h3,#fpnote h3{font:800 19px var(--font);color:var(--blue2)}
 #warn .uname{background:var(--soft);border:1px solid #cfe0ff;border-radius:14px;padding:10px 14px;text-align:center;font-weight:800;font-size:17px;color:var(--blue2);word-break:break-word}
 
 .hd{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
@@ -124,7 +124,7 @@ input[type=text]::placeholder{color:var(--mut)}
 .center h2{justify-content:center}
 .center .ctrl{justify-content:center}
 .fly{animation:fly 2.4s ease-in-out infinite}
-@keyframes fly{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-4px) rotate(-1.5deg)}50%{transform:translateY(-6px) rotate(0)}75%{transform:translateY(-3px) rotate(1.5deg)}}
+@keyframes fly{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @media (prefers-reduced-motion:reduce){.fly{animation:none}}
 .chatbox{height:260px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--base);border-radius:14px;border:1px solid var(--edge);-webkit-overflow-scrolling:touch;text-align:left}
 .msg{max-width:82%;align-self:flex-start;background:#fff;border:1px solid var(--edge);border-radius:14px 14px 14px 4px;padding:6px 10px;font-size:14px;word-break:break-word}
@@ -174,11 +174,6 @@ input[type=text]::placeholder{color:var(--mut)}
     <p id="authMsg">Memuat…</p>
     <div id="upForm" hidden>
       <input type="text" id="rName" placeholder="Nama kamu (dipakai juga saat donate)" maxlength="30" autocomplete="off">
-      <div class="note">
-        <b>Tentang sidik jarimu</b>
-        Sidik jari hanya dipakai lewat sensor perangkatmu untuk masuk dan mencegah akun ganda. Data sidik jari tidak dikirim dan tidak disimpan oleh web ini. Satu perangkat/sidik jari hanya bisa mendaftar satu akun.
-      </div>
-      <label class="chk"><input type="checkbox" id="rAgree"> Saya mengerti dan setuju sidik jari perangkat saya dipakai untuk akun ini.</label>
       <button class="btn gold wide" id="fpUp" data-act="regsave">👆 Daftar dengan sidik jari</button>
     </div>
   </div>
@@ -191,6 +186,12 @@ input[type=text]::placeholder{color:var(--mut)}
   <p>Gunakan username dari web ini saat donate, agar kamu dimasukkan ke antrian.</p>
   <div class="uname" id="warnName"></div>
   <div class="ctrl"><button class="btn" data-act="warnno">Batal</button><button class="btn gold" data-act="sawergo">Mengerti, lanjut</button></div>
+</div></div>
+<div id="fpnote" hidden><div class="glass box" role="alertdialog" aria-modal="true" aria-labelledby="fpnoteT">
+  <h3 id="fpnoteT">👆 Sidik jari untuk apa?</h3>
+  <p>Sidik jarimu dipakai untuk <b>masuk ke akun</b> dan <b>mencegah akun ganda</b>. Sidik jari dibaca oleh sensor perangkatmu sendiri, datanya tidak dikirim dan tidak disimpan oleh web ini. Satu perangkat hanya bisa mendaftar satu akun.</p>
+  <p class="mut">Baca dulu ya, tombol lanjut aktif dalam 3 detik.</p>
+  <div class="ctrl"><button class="btn" data-act="fpno">Batal</button><button class="btn gold" id="fpGo" data-act="fpgo" disabled>Lanjut (3)</button></div>
 </div></div>
 <div id="pick" hidden><div class="glass box" role="dialog" aria-modal="true" aria-labelledby="pickT">
   <h3 id="pickT">Kamu mau apa?</h3>
@@ -279,7 +280,7 @@ function setMode(m){
   $('segIn').classList.toggle('on', m === 'in'); $('segUp').classList.toggle('on', m === 'up');
   $('upForm').hidden = m !== 'up'; $('inForm').hidden = m !== 'in';
   if (!fpOk()) return setMsg('Sidik jari butuh HTTPS dan perangkat dengan sensor/kunci layar.');
-  setMsg(m === 'in' ? 'Tap ikon sidik jari untuk masuk.' : 'Isi nama, baca catatan, lalu daftar dengan sidik jari.');
+  setMsg(m === 'in' ? 'Tap ikon sidik jari untuk masuk.' : 'Isi nama lalu tekan tombol daftar dengan sidik jari.');
 }
 function showLogin(){ $('app').hidden = true; $('nav').hidden = true; $('login').hidden = false; setMode('in'); }
 function showApp(){ $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false; }
@@ -293,10 +294,25 @@ async function loginFp(){
     await enterApp(res);
   } catch(e){ setMsg(fpErr(e)); } finally { btn.disabled = false; }
 }
+let fpTimer = null;
+function fpAsk(){
+  const name = $('rName').value.trim();
+  if (name.length < 2) return toast('Isi nama dulu (minimal 2 huruf)');
+  if (!fpOk()) return toast('Sidik jari butuh HTTPS dan perangkat yang mendukung');
+  const go = $('fpGo'); let n = 3;
+  go.disabled = true; go.textContent = 'Lanjut (' + n + ')';
+  $('fpnote').hidden = false;
+  clearInterval(fpTimer);
+  fpTimer = setInterval(() => {
+    n--;
+    if (n > 0) go.textContent = 'Lanjut (' + n + ')';
+    else { clearInterval(fpTimer); go.disabled = false; go.textContent = 'Mengerti, lanjut'; }
+  }, 1000);
+}
+function fpClose(){ clearInterval(fpTimer); $('fpnote').hidden = true; }
 async function regSave(){
   const name = $('rName').value.trim();
   if (name.length < 2) return toast('Isi nama dulu (minimal 2 huruf)');
-  if (!$('rAgree').checked) return toast('Centang persetujuan dulu');
   if (!fpOk()) return toast('Sidik jari butuh HTTPS dan perangkat yang mendukung');
   const btn = $('fpUp'); btn.disabled = true;
   try {
@@ -313,7 +329,7 @@ async function regSave(){
       timeout: 60000
     }});
     const res = await rpc('register_member', {p_name: name, p_cred: b64u(cred.rawId)});
-    $('rName').value = ''; $('rAgree').checked = false;
+    $('rName').value = '';
     await enterApp(res);
   } catch(e){ toast(fpErr(e)); } finally { btn.disabled = false; }
 }
@@ -387,13 +403,13 @@ function viewHome(){
     <div class="hd">${avatar(m)}<div><p class="mut">👑 ArcZ Comunity</p><h1>Halo, ${esc(m.name)}</h1></div></div>
     ${donateHTML('Donate klik disini', 'Bebas bang donet buat beli snek 😁😁', 'pick')}
     <div class="stats" data-tour="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
-    <div class="ctrl" style="margin:0"><button class="btn gold fly" data-tab="vip">👑 Beli VIP</button><button class="btn" data-act="hist" data-tour="histbtn">🕘 Riwayat</button></div>
     ${chatHTML()}
   </div>`;
 }
 function viewVip(){
   return `<div class="view"><h1>VIP's</h1>
     ${donateHTML('Order VIP seiklasnya....', 'Donate di sociabuzz.com/zixixiangxiang/tribe, lalu admin menambahkan jumlah game kamu.')}
+    <button class="btn wide" data-act="hist" data-tour="histbtn">🕘 Riwayat</button>
     <div class="glass pad" data-tour="room"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
     <div class="glass pad" data-tour="queue"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(false)}</div>
   </div>`;
@@ -515,7 +531,9 @@ const ACT = {
   sawergo: () => { $('warn').hidden = true; openSawer(); },
   warnno: () => { $('warn').hidden = true; },
   loginfp: loginFp,
-  regsave: regSave,
+  regsave: fpAsk,
+  fpno: fpClose,
+  fpgo: () => { if ($('fpGo').disabled) return; fpClose(); regSave(); },
   modeIn: () => setMode('in'),
   modeUp: () => setMode('up'),
   tour: () => startTour(),
@@ -532,6 +550,7 @@ document.addEventListener('click', e => {
 $('warn').addEventListener('click', e => { if (e.target === $('warn')) $('warn').hidden = true; });
 $('hist').addEventListener('click', e => { if (e.target === $('hist')) $('hist').hidden = true; });
 $('pick').addEventListener('click', e => { if (e.target === $('pick')) $('pick').hidden = true; });
+$('fpnote').addEventListener('click', e => { if (e.target === $('fpnote')) fpClose(); });
 
 /* ---------- Room chat (auto refresh 1 detik, manual ON, mati saat tab disembunyikan) ---------- */
 let chat = [], chatAfter = 0, chatAuto = false, chatTimer = null, chatBusy = false, chatLoaded = false, chatDraft = '', chatSending = false;
@@ -590,12 +609,12 @@ function buildSteps(){
     {tab:'home', title:'Selamat datang di ArcZ Comunity 👑', text:'Ini panduan singkat yang menunjukkan fungsi semua tombol. Tap Lanjut untuk mulai.'},
     {tab:'home', sel:'[data-tour="donate"]', title:'Tombol donate', text:'Tap untuk memilih: Donate (dikirim ke halaman Sociabuzz) atau Beli VIP (dibawa ke halaman VIP).'},
     {tab:'home', sel:'[data-tour="stats"]', title:'Statistik', text:'Total game, Win, dan Lose milikmu.'},
-    {tab:'home', sel:'[data-tour="histbtn"]', title:'Riwayat', text:'Membuka pop up daftar game yang sudah selesai beserta hasil Win atau Lose.'},
     {tab:'home', sel:'[data-tour="chat"]', title:'Room chat', text:'Ngobrol dengan member lain. Aktifkan Auto refresh agar pesan baru muncul tiap 1 detik. Auto refresh mati sendiri saat tab disembunyikan.'},
     {sel:'nav [data-tab="vip"]', title:"VIP's", text:'Halaman room game dan antrian VIP.'},
     {tab:'vip', sel:'[data-tour="donate"]', title:'Order VIP', text:'Sebelum ke Sociabuzz kamu diingatkan memakai username dari web ini, supaya masuk antrian.'},
     {tab:'vip', sel:'[data-tour="room"]', title:'Room game', text:'Ada 4 kursi. Terlihat siapa yang sedang main dan statusnya: Menunggu atau Sedang main.'},
     {tab:'vip', sel:'[data-tour="queue"]', title:'Antrian VIP', text:'Urutan giliran main. Kalau kamu punya beberapa game, tiketnya diselang-seling dengan member lain, misalnya tertulis "Game 2 dari 3".'},
+    {tab:'vip', sel:'[data-tour="histbtn"]', title:'Riwayat', text:'Membuka pop up daftar game yang sudah selesai beserta hasil Win atau Lose.'},
     {sel:'nav [data-tab="profile"]', title:'Profil', text:'Lihat namamu, buka tutorial, atau keluar.'},
     {tab:'profile', sel:'[data-act="tour"]', title:'Tutorial', text:'Tap untuk membuka panduan ini lagi kapan saja.'},
     {tab:'profile', sel:'[data-act="logout"]', title:'Keluar', text:'Keluar dari akun. Masuk lagi cukup dengan sidik jari.'}
