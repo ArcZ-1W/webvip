@@ -283,7 +283,7 @@ function setMode(m){
   if (!fpOk()) return setMsg('Sidik jari butuh HTTPS dan perangkat dengan sensor/kunci layar.');
   setMsg(m === 'in' ? 'Tap ikon sidik jari untuk masuk.' : 'Isi nama lalu tekan tombol daftar dengan sidik jari.');
 }
-function showLogin(){ $('app').hidden = true; $('nav').hidden = true; $('login').hidden = false; setMode('in'); }
+function showLogin(){ $('app').hidden = true; $('nav').hidden = true; $('login').hidden = false; setMode(getSavedCred() ? 'in' : 'up'); }
 function showApp(){ $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false; }
 
 const getSavedCred = () => { try { return localStorage.getItem('vipCred'); } catch(e){ return null; } };
