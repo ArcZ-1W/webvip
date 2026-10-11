@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>VIP Queue</title>
+<title>ArcZ Comunity</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
-:root  
+:root{
   --base:#f4f8ff; --card:#fff; --tx:#0f2342; --mut:#5f7394; --edge:#dde7f5; --soft:#eef4ff;
   --blue:#1d6bff; --blue2:#0b4fd6; --ok:#12a875; --bad:#e5484d;
   --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -120,11 +120,14 @@ input[type=text]::placeholder{color:var(--mut)}
 #sawerClose{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:10000000;width:42px;height:42px;border-radius:50%;border:1px solid var(--edge);background:#fff;color:var(--tx);font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.2)}
 
 /* Popup peringatan donate */
-#warn{position:fixed;inset:0;z-index:90;background:rgba(15,35,66,.55);display:flex;align-items:center;justify-content:center;padding:20px}
-#warn .box{width:100%;max-width:360px;padding:22px;display:flex;flex-direction:column;gap:12px}
-#warn h3{font:800 19px var(--font);color:var(--blue2)}
+#warn,#hist{position:fixed;inset:0;z-index:90;background:rgba(15,35,66,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+#warn .box,#hist .box{width:100%;max-width:360px;padding:22px;display:flex;flex-direction:column;gap:12px}
+#warn h3,#hist h3{font:800 19px var(--font);color:var(--blue2)}
 #warn .uname{background:var(--soft);border:1px solid #cfe0ff;border-radius:14px;padding:10px 14px;text-align:center;font-weight:800;font-size:17px;color:var(--blue2);word-break:break-word}
 
+#hist .box{max-width:420px;max-height:80vh}
+#hist .row h3{margin:0}
+#histBody{overflow:auto;min-height:0;-webkit-overflow-scrolling:touch}
 #tour{position:fixed;inset:0;z-index:80}
 #tour.dim{background:rgba(15,35,66,.6)}
 #tourHole{position:fixed;border-radius:16px;border:2px solid var(--blue);box-shadow:0 0 0 9999px rgba(15,35,66,.6);pointer-events:none;transition:left .25s,top .25s,width .25s,height .25s}
@@ -146,13 +149,13 @@ input[type=text]::placeholder{color:var(--mut)}
 <section id="setup" hidden style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px">
   <div class="glass setup">
     <h2>Isi konfigurasi dulu</h2>
-    <p class="mut">Buka <code>index.html</code>, lalu isi <code>SUPABASE_URL</code> dan <code>SUPABASE_KEY</code> (anon key) di bagian <code>CFG</code>. Jalankan juga <code>supabase_fingerprint.sql</code> di SQL Editor Supabase.</p>
+    <p class="mut">Buka <code>index.html</code>, lalu isi <code>SUPABASE_URL</code> dan <code>SUPABASE_KEY</code> (anon key) di bagian <code>CFG</code>. Jalankan juga <code>supa.sql</code> di SQL Editor Supabase.</p>
   </div>
 </section>
 
 <section id="login" hidden>
   <div class="glass auth">
-    <div class="brand">👑 VIP Queue</div>
+    <div class="brand">👑 ArcZ Comunity</div>
     <div class="seg">
       <button id="segIn" class="on" data-act="modeIn">Masuk</button>
       <button id="segUp" data-act="modeUp">Daftar</button>
@@ -179,6 +182,7 @@ input[type=text]::placeholder{color:var(--mut)}
   <div class="uname" id="warnName"></div>
   <div class="ctrl"><button class="btn" data-act="warnno">Batal</button><button class="btn gold" data-act="sawergo">Mengerti, lanjut</button></div>
 </div></div>
+<div id="hist" hidden><div class="glass box" role="dialog" aria-modal="true" aria-labelledby="histT"><div class="row"><h3 id="histT">🕘 Riwayat</h3><button class="btn sm" data-act="histno" aria-label="Tutup">✕</button></div><div id="histBody"></div></div></div>
 <div id="tour" hidden><div id="tourHole" hidden></div><div id="tourBox" class="glass" role="dialog" aria-live="polite"></div></div>
 <div id="toast"></div>
 
@@ -286,7 +290,7 @@ async function regSave(){
     const ids = (await rpc('list_cred_ids')) || [];
     const cred = await navigator.credentials.create({publicKey:{
       challenge: rnd(32),
-      rp: {name:'VIP Queue'},
+      rp: {name:'ArcZ Comunity'},
       user: {id: rnd(16), name: name, displayName: name},
       pubKeyCredParams: [{type:'public-key', alg:-7}, {type:'public-key', alg:-257}],
       authenticatorSelection: {authenticatorAttachment:'platform', userVerification:'required', residentKey:'required'},
@@ -308,7 +312,7 @@ async function enterApp(res){
 async function doLogout(callServer = true){
   if (callServer && token){ try { await rpc('logout_session', {p_token: token}); } catch(e){} }
   token = null; localStorage.removeItem('vipTok'); S = EMPTY(); lastSig = '';
-  touring = false; $('tour').hidden = true; $('warn').hidden = true;
+  touring = false; $('tour').hidden = true; $('warn').hidden = true; $('hist').hidden = true;
   showLogin();
 }
 
@@ -347,7 +351,7 @@ function historyHTML(){
   if (!S.history.length) return '<div class="empty">Belum ada game yang selesai.</div>';
   return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar({name:p.name},'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
 }
-const donateHTML = () => `<button type="button" class="glass donate" data-tour="donate" data-act="sawer"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Sawer di Sociabuzz, lalu admin menambahkan jumlah game kamu.</span></span></button>`;
+const donateHTML = () => `<button type="button" class="glass donate" data-tour="donate" data-act="sawer"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Donate di sociabuzz.com/zixixiangxiang/tribe, lalu admin menambahkan jumlah game kamu.</span></span></button>`;
 const stateChip = () => `<span class="chip ${S.game.status}">${S.game.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span>`;
 const timerHTML = () => S.game.status === 'playing' ? `<p class="mut" style="margin-top:10px">Berjalan <b data-timer>00:00</b> sejak ${fmt(S.game.started_at)}</p>` : '';
 const myTickets = () => queueEntries().filter(e => e.member_id === S.me.id).length;
@@ -362,14 +366,25 @@ function myStatus(){
 
 function viewHome(){
   const m = S.me;
+  const mine = S.history.filter(h => (h.players || []).some(p => p.id === m.id));
+  const wins = mine.filter(h => h.result === 'win').length;
   return `<div class="view">
-    <div class="row"><div><p class="mut">Halo,</p><h1>${esc(m.name)}</h1></div>${avatar(m)}</div>
-    <div class="glass pad" data-tour="room"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
+    <div class="row"><div><p class="mut">👑 ArcZ Comunity</p><h1>Halo, ${esc(m.name)}</h1></div>${avatar(m)}</div>
     ${donateHTML()}
+    <div class="glass pad" data-tour="status"><h2>Status kamu</h2><p>${esc(myStatus())}</p></div>
+    <div class="stats" data-tour="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
+    <div class="glass pad"><h2>Room sekarang ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2><p class="mut">${queueEntries().length} game menunggu di antrian VIP.</p>
+      <div class="ctrl"><button class="btn gold" data-tab="vip">Buka VIP's</button><button class="btn" data-act="hist" data-tour="histbtn">🕘 Riwayat</button></div></div>
+  </div>`;
+}
+function viewVip(){
+  return `<div class="view"><h1>VIP's</h1>
+    ${donateHTML()}
+    <div class="glass pad" data-tour="room"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
     <div class="glass pad" data-tour="queue"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(false)}</div>
   </div>`;
 }
-function viewHistory(){ return `<div class="view"><h1>Riwayat</h1><div class="glass pad">${historyHTML()}</div></div>`; }
+function openHist(){ $('histBody').innerHTML = historyHTML(); $('hist').hidden = false; }
 function viewAdmin(){
   const idle = S.game.status === 'idle';
   const ctrl = idle
@@ -390,13 +405,8 @@ function viewAdmin(){
 }
 function viewProfile(){
   const m = S.me;
-  const mine = S.history.filter(h => (h.players || []).some(p => p.id === m.id));
-  const wins = mine.filter(h => h.result === 'win').length;
   return `<div class="view"><h1>Profil</h1>
     <div class="glass profile-top">${avatar(m,'lg')}<div><div style="font:800 22px var(--font)">${esc(m.name)}</div><div class="mut">Bergabung ${fmt(m.created_at)}</div></div>${m.role === 'admin' ? '<span class="chip admin">Admin</span>' : '<span class="chip">Member</span>'}<p class="mut">Pakai nama ini saat donate.</p></div>
-    <div class="glass pad"><h2>Status kamu</h2><p>${esc(myStatus())}</p></div>
-    <div class="stats" data-tour="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
-    ${donateHTML()}
     <button class="btn wide" data-act="tour">📖 Lihat tutorial lagi</button>
     <button class="btn wide" data-act="logout">Keluar</button>
   </div>`;
@@ -404,13 +414,16 @@ function viewProfile(){
 function render(){
   if (!S.me) return;
   if (tab === 'admin' && !isAdm()) tab = 'home';
-  const v = {home:viewHome, history:viewHistory, admin:viewAdmin, profile:viewProfile}[tab] || viewHome;
+  const v = {home:viewHome, vip:viewVip, admin:viewAdmin, profile:viewProfile}[tab] || viewHome;
   $('app').innerHTML = v();
-  let nav = [['home','Beranda','home'], ['history','Riwayat','hist']].map(([k,l,i]) => `<button class="ni ${tab === k ? 'on' : ''}" data-tab="${k}">${svg(i)}${l}</button>`).join('');
-  nav += `<button type="button" class="ni gem" data-act="sawer">${svg('gem')}Sawer</button>`;
-  if (isAdm()) nav += `<button class="ni ${tab === 'admin' ? 'on' : ''}" data-tab="admin">${svg('shield')}Admin</button>`;
-  nav += `<button class="ni ${tab === 'profile' ? 'on' : ''}" data-tab="profile">${svg('user')}Profil</button>`;
+  const on = k => tab === k ? 'on' : '';
+  let nav = `<button class="ni ${on('home')}" data-tab="home">${svg('home')}Dashboard</button>` +
+    `<button class="ni ${on('vip')}" data-tab="vip">${svg('gem')}VIP's</button>` +
+    `<button type="button" class="ni" data-act="hist">${svg('hist')}Riwayat</button>`;
+  if (isAdm()) nav += `<button class="ni ${on('admin')}" data-tab="admin">${svg('shield')}Admin</button>`;
+  nav += `<button class="ni ${on('profile')}" data-tab="profile">${svg('user')}Profil</button>`;
   $('nav').innerHTML = nav;
+  if (!$('hist').hidden) $('histBody').innerHTML = historyHTML();
   tick();
 }
 function tick(){
@@ -453,6 +466,8 @@ const ACT = {
   del: id => { const m = byId(id); if (!m || !confirm('Hapus ' + m.name + '?')) return; run(() => rpc('admin_delete_member', {p_token:token, p_member:id})); },
   logout: () => doLogout(true),
   sawer: warnDonate,
+  hist: openHist,
+  histno: () => { $('hist').hidden = true; },
   sawergo: () => { $('warn').hidden = true; openSawer(); },
   warnno: () => { $('warn').hidden = true; },
   loginfp: loginFp,
@@ -471,20 +486,21 @@ document.addEventListener('click', e => {
   (ACT[b.dataset.act] || (() => {}))(b.dataset.id);
 });
 $('warn').addEventListener('click', e => { if (e.target === $('warn')) $('warn').hidden = true; });
+$('hist').addEventListener('click', e => { if (e.target === $('hist')) $('hist').hidden = true; });
 
 /* ---------- Tutorial ---------- */
 let touring = false, tourSteps = [], tourI = 0;
 function buildSteps(){
   const st = [
-    {tab:'home', title:'Selamat datang 👑', text:'Ini panduan singkat yang menunjukkan fungsi semua tombol. Tap Lanjut untuk mulai.'},
-    {tab:'home', sel:'[data-tour="room"]', title:'Room game', text:'Ada 4 kursi. Di sini terlihat siapa yang sedang main dan statusnya: Menunggu atau Sedang main.'},
-    {tab:'home', sel:'[data-tour="donate"]', title:'Mau jadi VIP?', text:'Tap kartu ini untuk sawer di Sociabuzz tanpa keluar dari web. Gunakan username dari web ini saat donate, lalu admin menambahkan jumlah game VIP kamu.'},
-    {tab:'home', sel:'[data-tour="queue"]', title:'Antrian VIP', text:'Urutan giliran main. Kalau kamu punya beberapa game, tiketnya diselang-seling dengan member lain, misalnya tertulis "Game 2 dari 3".'},
-    {tab:'home', sel:'nav [data-tab="home"]', title:'Beranda', text:'Kembali ke room dan antrian.'},
-    {sel:'nav [data-tab="history"]', title:'Riwayat', text:'Daftar game yang sudah selesai beserta hasil Win atau Lose.'},
-    {sel:'nav .gem', title:'Sawer', text:'Pintasan untuk membuka jendela sawer Sociabuzz dan join VIP.'},
-    {sel:'nav [data-tab="profile"]', title:'Profil', text:'Lihat statusmu, jumlah game, Win, dan Lose.'},
-    {tab:'profile', sel:'[data-tour="stats"]', title:'Statistik', text:'Total game, Win, dan Lose milikmu.'},
+    {tab:'home', title:'Selamat datang di ArcZ Comunity 👑', text:'Ini panduan singkat yang menunjukkan fungsi semua tombol. Tap Lanjut untuk mulai.'},
+    {tab:'home', sel:'[data-tour="donate"]', title:'Tombol donate', text:'Tap untuk donate di Sociabuzz tanpa keluar dari web. Gunakan username dari web ini agar kamu dimasukkan ke antrian, lalu admin menambahkan jumlah game VIP kamu.'},
+    {tab:'home', sel:'[data-tour="status"]', title:'Status kamu', text:'Posisi dan jumlah game kamu di antrian.'},
+    {tab:'home', sel:'[data-tour="stats"]', title:'Statistik', text:'Total game, Win, dan Lose milikmu.'},
+    {tab:'home', sel:'[data-tour="histbtn"]', title:'Riwayat', text:'Membuka pop up daftar game yang sudah selesai beserta hasil Win atau Lose.'},
+    {sel:'nav [data-tab="vip"]', title:"VIP's", text:'Halaman room game dan antrian VIP.'},
+    {tab:'vip', sel:'[data-tour="room"]', title:'Room game', text:'Ada 4 kursi. Terlihat siapa yang sedang main dan statusnya: Menunggu atau Sedang main.'},
+    {tab:'vip', sel:'[data-tour="queue"]', title:'Antrian VIP', text:'Urutan giliran main. Kalau kamu punya beberapa game, tiketnya diselang-seling dengan member lain, misalnya tertulis "Game 2 dari 3".'},
+    {sel:'nav [data-tab="profile"]', title:'Profil', text:'Lihat namamu, buka tutorial, atau keluar.'},
     {tab:'profile', sel:'[data-act="tour"]', title:'Tutorial', text:'Tap untuk membuka panduan ini lagi kapan saja.'},
     {tab:'profile', sel:'[data-act="logout"]', title:'Keluar', text:'Keluar dari akun. Masuk lagi cukup dengan sidik jari.'}
   ];
@@ -504,13 +520,13 @@ function buildSteps(){
 }
 function maybeTour(){
   if (!S.me) return;
-  let seen = false; try { seen = !!localStorage.getItem('vipTour_' + S.me.id); } catch(e){}
+  let seen = false; try { seen = !!localStorage.getItem('arczTour_' + S.me.id); } catch(e){}
   if (!seen) setTimeout(() => { if (S.me && !touring) startTour(); }, 600);
 }
 function startTour(){ if (!S.me) return; touring = true; tourSteps = buildSteps(); tourI = 0; $('tour').hidden = false; showStep(); }
 function endTour(){
   touring = false; $('tour').hidden = true;
-  try { if (S.me) localStorage.setItem('vipTour_' + S.me.id, '1'); } catch(e){}
+  try { if (S.me) localStorage.setItem('arczTour_' + S.me.id, '1'); } catch(e){}
   tab = 'home'; render(); window.scrollTo(0, 0);
 }
 function showStep(){
@@ -571,7 +587,7 @@ initSawer();
 function initialTab(){
   if (/\/add\/?$/.test(location.pathname) || /^#\/?(add|admin)/.test(location.hash)) return 'admin';
   const h = location.hash.replace(/^#\/?/, '');
-  return ['home','history','profile'].includes(h) ? h : 'home';
+  return ['home','vip','profile'].includes(h) ? h : 'home';
 }
 (async function boot(){
   if (!configured){ $('setup').hidden = false; return; }
@@ -584,7 +600,7 @@ function initialTab(){
     showLogin();
   } catch(e){
     $('setup').hidden = false;
-    $('setup').querySelector('p').textContent = 'Gagal terhubung ke Supabase: ' + (e.message || e) + '. Cek URL, anon key, dan pastikan supabase_fingerprint.sql sudah dijalankan.';
+    $('setup').querySelector('p').textContent = 'Gagal terhubung ke Supabase: ' + (e.message || e) + '. Cek URL, anon key, dan pastikan supa.sql sudah dijalankan.';
   }
 })();
 </script>
