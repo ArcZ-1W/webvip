@@ -112,19 +112,29 @@ input[type=text]::placeholder{color:var(--mut)}
 .setup{padding:20px;max-width:420px}
 .setup code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:13px}
 
-/* Widget sawer Sociabuzz */
-#wrapperFloatingBtn{display:none!important}
-#sbModalOverlay{background:rgba(15,35,66,.6)!important}
-#sbModal{border-radius:22px;overflow:hidden!important;height:92vh!important;height:92dvh!important;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-#sbModal iframe{background:#fff}
-#sawerClose{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:10000000;width:42px;height:42px;border-radius:50%;border:1px solid var(--edge);background:#fff;color:var(--tx);font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.2)}
 
 /* Popup peringatan donate */
-#warn,#hist{position:fixed;inset:0;z-index:90;background:rgba(15,35,66,.55);display:flex;align-items:center;justify-content:center;padding:20px}
-#warn .box,#hist .box{width:100%;max-width:360px;padding:22px;display:flex;flex-direction:column;gap:12px}
-#warn h3,#hist h3{font:800 19px var(--font);color:var(--blue2)}
+#warn,#hist,#pick{position:fixed;inset:0;z-index:90;background:rgba(15,35,66,.55);display:flex;align-items:center;justify-content:center;padding:20px}
+#warn .box,#hist .box,#pick .box{width:100%;max-width:360px;padding:22px;display:flex;flex-direction:column;gap:12px}
+#warn h3,#hist h3,#pick h3{font:800 19px var(--font);color:var(--blue2)}
 #warn .uname{background:var(--soft);border:1px solid #cfe0ff;border-radius:14px;padding:10px 14px;text-align:center;font-weight:800;font-size:17px;color:var(--blue2);word-break:break-word}
 
+.hd{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.center .donate{flex-direction:column;text-align:center;justify-content:center}
+.center h2{justify-content:center}
+.center .ctrl{justify-content:center}
+.fly{animation:fly 2.4s ease-in-out infinite}
+@keyframes fly{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-4px) rotate(-1.5deg)}50%{transform:translateY(-6px) rotate(0)}75%{transform:translateY(-3px) rotate(1.5deg)}}
+@media (prefers-reduced-motion:reduce){.fly{animation:none}}
+.chatbox{height:260px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:8px;background:var(--base);border-radius:14px;border:1px solid var(--edge);-webkit-overflow-scrolling:touch;text-align:left}
+.msg{max-width:82%;align-self:flex-start;background:#fff;border:1px solid var(--edge);border-radius:14px 14px 14px 4px;padding:6px 10px;font-size:14px;word-break:break-word}
+.msg b{display:block;font-size:12px;color:var(--blue2)}
+.msg small{display:block;font-size:10px;color:var(--mut);text-align:right}
+.msg.me{align-self:flex-end;background:var(--blue);color:#fff;border-color:var(--blue);border-radius:14px 14px 4px 14px}
+.msg.me b,.msg.me small{color:rgba(255,255,255,.8)}
+.chatform{display:flex;gap:8px;margin-top:10px}
+.chatform input{flex:1;min-width:0}
+.btn.auto.on{background:var(--ok);color:#fff;border:0}
 #hist .box{max-width:420px;max-height:80vh}
 #hist .row h3{margin:0}
 #histBody{overflow:auto;min-height:0;-webkit-overflow-scrolling:touch}
@@ -182,12 +192,17 @@ input[type=text]::placeholder{color:var(--mut)}
   <div class="uname" id="warnName"></div>
   <div class="ctrl"><button class="btn" data-act="warnno">Batal</button><button class="btn gold" data-act="sawergo">Mengerti, lanjut</button></div>
 </div></div>
+<div id="pick" hidden><div class="glass box" role="dialog" aria-modal="true" aria-labelledby="pickT">
+  <h3 id="pickT">Kamu mau apa?</h3>
+  <p>Kamu mau donate atau beli VIP? Kalau beli VIP, kamu dibawa ke halaman VIP's.</p>
+  <div class="ctrl" style="flex-direction:column"><button class="btn gold" data-act="pickdonate">💝 Donate</button><button class="btn fly" data-act="pickvip">👑 Beli VIP</button></div>
+  <button class="linkbtn" data-act="pickno">Batal</button>
+</div></div>
 <div id="hist" hidden><div class="glass box" role="dialog" aria-modal="true" aria-labelledby="histT"><div class="row"><h3 id="histT">🕘 Riwayat</h3><button class="btn sm" data-act="histno" aria-label="Tutup">✕</button></div><div id="histBody"></div></div></div>
 <div id="tour" hidden><div id="tourHole" hidden></div><div id="tourBox" class="glass" role="dialog" aria-live="polite"></div></div>
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="https://storage.sociabuzz.com/storage/js/main/buttononwebsite/index.min.js"></script>
 <script>
 /* ================== KONFIGURASI ================== */
 const CFG = {
@@ -312,7 +327,7 @@ async function enterApp(res){
 async function doLogout(callServer = true){
   if (callServer && token){ try { await rpc('logout_session', {p_token: token}); } catch(e){} }
   token = null; localStorage.removeItem('vipTok'); S = EMPTY(); lastSig = '';
-  touring = false; $('tour').hidden = true; $('warn').hidden = true; $('hist').hidden = true;
+  touring = false; $('tour').hidden = true; $('warn').hidden = true; $('hist').hidden = true; $('pick').hidden = true; chatReset();
   showLogin();
 }
 
@@ -351,7 +366,7 @@ function historyHTML(){
   if (!S.history.length) return '<div class="empty">Belum ada game yang selesai.</div>';
   return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar({name:p.name},'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
 }
-const donateHTML = (t, s) => `<button type="button" class="glass donate" data-tour="donate" data-act="sawer"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>${esc(t)}</b><span class="mut">${esc(s)}</span></span></button>`;
+const donateHTML = (t, s, a) => `<button type="button" class="glass donate" data-tour="donate" data-act="${a || 'sawer'}"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>${esc(t)}</b><span class="mut">${esc(s)}</span></span></button>`;
 const stateChip = () => `<span class="chip ${S.game.status}">${S.game.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span>`;
 const timerHTML = () => S.game.status === 'playing' ? `<p class="mut" style="margin-top:10px">Berjalan <b data-timer>00:00</b> sejak ${fmt(S.game.started_at)}</p>` : '';
 const myTickets = () => queueEntries().filter(e => e.member_id === S.me.id).length;
@@ -368,11 +383,12 @@ function viewHome(){
   const m = S.me;
   const mine = S.history.filter(h => (h.players || []).some(p => p.id === m.id));
   const wins = mine.filter(h => h.result === 'win').length;
-  return `<div class="view">
-    <div class="row"><div><p class="mut">👑 ArcZ Comunity</p><h1>Halo, ${esc(m.name)}</h1></div>${avatar(m)}</div>
-    ${donateHTML('Donate klik disini', 'Bebas bang donet buat beli snek 😁😁')}
+  return `<div class="view center">
+    <div class="hd">${avatar(m)}<div><p class="mut">👑 ArcZ Comunity</p><h1>Halo, ${esc(m.name)}</h1></div></div>
+    ${donateHTML('Donate klik disini', 'Bebas bang donet buat beli snek 😁😁', 'pick')}
     <div class="stats" data-tour="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
-    <div class="ctrl" style="margin:0"><button class="btn gold" data-tab="vip">Buka VIP's</button><button class="btn" data-act="hist" data-tour="histbtn">🕘 Riwayat</button></div>
+    <div class="ctrl" style="margin:0"><button class="btn gold fly" data-tab="vip">👑 Beli VIP</button><button class="btn" data-act="hist" data-tour="histbtn">🕘 Riwayat</button></div>
+    ${chatHTML()}
   </div>`;
 }
 function viewVip(){
@@ -417,7 +433,12 @@ function render(){
   if (!S.me) return;
   if (tab === 'admin' && !isAdm()) tab = 'home';
   const v = {home:viewHome, vip:viewVip, admin:viewAdmin, profile:viewProfile}[tab] || viewHome;
+  const hadFocus = document.activeElement && document.activeElement.id === 'chatIn';
   $('app').innerHTML = v();
+  if (tab === 'home'){
+    chatPaint(); if (!chatLoaded) chatPoll(true);
+    if (hadFocus && $('chatIn')){ const ci = $('chatIn'); ci.focus(); ci.setSelectionRange(ci.value.length, ci.value.length); }
+  } else if (chatAuto) chatSet(false);
   const on = k => tab === k ? 'on' : '';
   let nav = `<button class="ni ${on('home')}" data-tab="home">${svg('home')}Dashboard</button>` +
     `<button class="ni ${on('vip')}" data-tab="vip">${svg('gem')}VIP's</button>`;
@@ -482,6 +503,13 @@ const ACT = {
   },
   logout: () => doLogout(true),
   sawer: warnDonate,
+  pick: () => { $('pick').hidden = false; },
+  pickno: () => { $('pick').hidden = true; },
+  pickdonate: () => { $('pick').hidden = true; openSawer(); },
+  pickvip: () => { $('pick').hidden = true; tab = 'vip'; render(); window.scrollTo(0, 0); },
+  chatauto: () => chatSet(!chatAuto),
+  chatrefresh: () => chatPoll(true),
+  chatsend: () => chatSend(),
   hist: openHist,
   histno: () => { $('hist').hidden = true; },
   sawergo: () => { $('warn').hidden = true; openSawer(); },
@@ -503,16 +531,69 @@ document.addEventListener('click', e => {
 });
 $('warn').addEventListener('click', e => { if (e.target === $('warn')) $('warn').hidden = true; });
 $('hist').addEventListener('click', e => { if (e.target === $('hist')) $('hist').hidden = true; });
+$('pick').addEventListener('click', e => { if (e.target === $('pick')) $('pick').hidden = true; });
+
+/* ---------- Room chat (auto refresh 1 detik, manual ON, mati saat tab disembunyikan) ---------- */
+let chat = [], chatAfter = 0, chatAuto = false, chatTimer = null, chatBusy = false, chatLoaded = false, chatDraft = '', chatSending = false;
+function chatReset(){ chatSet(false); chat = []; chatAfter = 0; chatLoaded = false; chatDraft = ''; }
+function chatHTML(){
+  return `<div class="glass pad" data-tour="chat"><h2>💬 Room chat</h2>
+    <div class="row" style="justify-content:center;gap:8px;margin-bottom:10px"><button class="btn sm auto ${chatAuto ? 'on' : ''}" id="chatAutoBtn" data-act="chatauto">${chatAuto ? '● Auto refresh ON' : '○ Auto refresh OFF'}</button><button class="btn sm" data-act="chatrefresh" aria-label="Refresh chat">🔄</button></div>
+    <div id="chatBox" class="chatbox" aria-live="polite"></div>
+    <div class="chatform"><input type="text" id="chatIn" placeholder="Tulis pesan…" maxlength="300" autocomplete="off" value="${esc(chatDraft)}"><button class="btn gold" data-act="chatsend">Kirim</button></div>
+    <p class="mut" style="margin-top:8px">Auto refresh mati sendiri saat tab disembunyikan.</p></div>`;
+}
+function chatPaint(){
+  const box = $('chatBox'); if (!box) return;
+  const near = !box.dataset.init || box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  box.innerHTML = chat.length ? chat.map(c => {
+    const mine = S.me && c.member_id === S.me.id;
+    const tm = new Date(c.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    return `<div class="msg ${mine ? 'me' : ''}"><b>${mine ? 'Kamu' : esc(c.name)}</b><span>${esc(c.body)}</span><small>${tm}</small></div>`;
+  }).join('') : '<div class="empty">Belum ada pesan. Mulai ngobrol!</div>';
+  box.dataset.init = '1';
+  if (near) box.scrollTop = box.scrollHeight;
+}
+async function chatPoll(force){
+  if (!token || (chatBusy && !force)) return;
+  chatBusy = true;
+  try {
+    const rows = ((await rpc('chat_list', {p_token: token, p_after: chatAfter})) || []).filter(r => r.id > chatAfter);
+    const first = !chatLoaded; chatLoaded = true;
+    if (rows.length){ chat = chat.concat(rows).slice(-100); chatAfter = rows[rows.length - 1].id; }
+    if (rows.length || first) chatPaint();
+  } catch(e){ if (isSessionErr(e)) doLogout(false); }
+  finally { chatBusy = false; }
+}
+function chatSet(on){
+  chatAuto = !!on; clearInterval(chatTimer); chatTimer = null;
+  if (chatAuto){ chatPoll(); chatTimer = setInterval(chatPoll, 1000); }
+  const b = $('chatAutoBtn');
+  if (b){ b.classList.toggle('on', chatAuto); b.textContent = chatAuto ? '● Auto refresh ON' : '○ Auto refresh OFF'; }
+}
+async function chatSend(){
+  const inp = $('chatIn'), t = (inp ? inp.value : chatDraft).trim();
+  if (!t || chatSending) return;
+  chatSending = true;
+  try { await rpc('chat_send', {p_token: token, p_body: t}); chatDraft = ''; if (inp) inp.value = ''; await chatPoll(true); }
+  catch(e){ if (isSessionErr(e)) doLogout(false); toast(e.message || 'Gagal mengirim pesan'); }
+  finally { chatSending = false; if (inp) inp.focus(); }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && chatAuto) chatSet(false); });
+document.addEventListener('input', e => { if (e.target && e.target.id === 'chatIn') chatDraft = e.target.value; });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'chatIn'){ e.preventDefault(); chatSend(); } });
 
 /* ---------- Tutorial ---------- */
 let touring = false, tourSteps = [], tourI = 0;
 function buildSteps(){
   const st = [
     {tab:'home', title:'Selamat datang di ArcZ Comunity 👑', text:'Ini panduan singkat yang menunjukkan fungsi semua tombol. Tap Lanjut untuk mulai.'},
-    {tab:'home', sel:'[data-tour="donate"]', title:'Tombol donate', text:'Tap untuk donate di Sociabuzz tanpa keluar dari web. Gunakan username dari web ini agar kamu dimasukkan ke antrian, lalu admin menambahkan jumlah game VIP kamu.'},
+    {tab:'home', sel:'[data-tour="donate"]', title:'Tombol donate', text:'Tap untuk memilih: Donate (dikirim ke halaman Sociabuzz) atau Beli VIP (dibawa ke halaman VIP).'},
     {tab:'home', sel:'[data-tour="stats"]', title:'Statistik', text:'Total game, Win, dan Lose milikmu.'},
     {tab:'home', sel:'[data-tour="histbtn"]', title:'Riwayat', text:'Membuka pop up daftar game yang sudah selesai beserta hasil Win atau Lose.'},
+    {tab:'home', sel:'[data-tour="chat"]', title:'Room chat', text:'Ngobrol dengan member lain. Aktifkan Auto refresh agar pesan baru muncul tiap 1 detik. Auto refresh mati sendiri saat tab disembunyikan.'},
     {sel:'nav [data-tab="vip"]', title:"VIP's", text:'Halaman room game dan antrian VIP.'},
+    {tab:'vip', sel:'[data-tour="donate"]', title:'Order VIP', text:'Sebelum ke Sociabuzz kamu diingatkan memakai username dari web ini, supaya masuk antrian.'},
     {tab:'vip', sel:'[data-tour="room"]', title:'Room game', text:'Ada 4 kursi. Terlihat siapa yang sedang main dan statusnya: Menunggu atau Sedang main.'},
     {tab:'vip', sel:'[data-tour="queue"]', title:'Antrian VIP', text:'Urutan giliran main. Kalau kamu punya beberapa game, tiketnya diselang-seling dengan member lain, misalnya tertulis "Game 2 dari 3".'},
     {sel:'nav [data-tab="profile"]', title:'Profil', text:'Lihat namamu, buka tutorial, atau keluar.'},
@@ -578,25 +659,12 @@ function placeTour(){
 }
 window.addEventListener('resize', placeTour);
 
-/* ---------- Sawer (widget Sociabuzz) ---------- */
-function initSawer(){
-  try {
-    if (typeof sbBoW === 'undefined') return;
-    sbBoW.draw('zixixiangxiang', 'QmVyaSBEdWt1bmdhbg', 'position-bottom-right', '#1d6bff', '#FFFFFF');
-    const close = document.createElement('button');
-    close.id = 'sawerClose'; close.type = 'button'; close.hidden = true;
-    close.setAttribute('aria-label', 'Tutup jendela sawer'); close.textContent = '✕';
-    document.body.appendChild(close);
-    const modal = $('sbModal'), overlay = $('sbModalOverlay');
-    close.onclick = () => overlay && overlay.click();
-    if (modal) new MutationObserver(() => { close.hidden = modal.style.display === 'none'; }).observe(modal, {attributes:true, attributeFilter:['style']});
-  } catch(e){}
-}
+/* ---------- Donate: apa pun selalu dikirim ke Sociabuzz ---------- */
 function openSawer(){
-  const b = $('btnModal');
-  if (b) b.click(); else window.open(CFG.DONATE, '_blank', 'noopener');
+  const a = document.createElement('a');
+  a.href = CFG.DONATE; a.target = '_blank'; a.rel = 'noopener noreferrer';
+  document.body.appendChild(a); a.click(); a.remove();
 }
-initSawer();
 
 /* ---------- Boot ---------- */
 function initialTab(){
