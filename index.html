@@ -351,7 +351,7 @@ function historyHTML(){
   if (!S.history.length) return '<div class="empty">Belum ada game yang selesai.</div>';
   return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar({name:p.name},'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
 }
-const donateHTML = () => `<button type="button" class="glass donate" data-tour="donate" data-act="sawer"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Donate di sociabuzz.com/zixixiangxiang/tribe, lalu admin menambahkan jumlah game kamu.</span></span></button>`;
+const donateHTML = (t, s) => `<button type="button" class="glass donate" data-tour="donate" data-act="sawer"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>${esc(t)}</b><span class="mut">${esc(s)}</span></span></button>`;
 const stateChip = () => `<span class="chip ${S.game.status}">${S.game.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span>`;
 const timerHTML = () => S.game.status === 'playing' ? `<p class="mut" style="margin-top:10px">Berjalan <b data-timer>00:00</b> sejak ${fmt(S.game.started_at)}</p>` : '';
 const myTickets = () => queueEntries().filter(e => e.member_id === S.me.id).length;
@@ -370,21 +370,23 @@ function viewHome(){
   const wins = mine.filter(h => h.result === 'win').length;
   return `<div class="view">
     <div class="row"><div><p class="mut">👑 ArcZ Comunity</p><h1>Halo, ${esc(m.name)}</h1></div>${avatar(m)}</div>
-    ${donateHTML()}
-    <div class="glass pad" data-tour="status"><h2>Status kamu</h2><p>${esc(myStatus())}</p></div>
+    ${donateHTML('Donate klik disini', 'Bebas bang donet buat beli snek 😁😁')}
     <div class="stats" data-tour="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
-    <div class="glass pad"><h2>Room sekarang ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2><p class="mut">${queueEntries().length} game menunggu di antrian VIP.</p>
-      <div class="ctrl"><button class="btn gold" data-tab="vip">Buka VIP's</button><button class="btn" data-act="hist" data-tour="histbtn">🕘 Riwayat</button></div></div>
+    <div class="ctrl" style="margin:0"><button class="btn gold" data-tab="vip">Buka VIP's</button><button class="btn" data-act="hist" data-tour="histbtn">🕘 Riwayat</button></div>
   </div>`;
 }
 function viewVip(){
   return `<div class="view"><h1>VIP's</h1>
-    ${donateHTML()}
+    ${donateHTML('Order VIP seiklasnya....', 'Donate di sociabuzz.com/zixixiangxiang/tribe, lalu admin menambahkan jumlah game kamu.')}
     <div class="glass pad" data-tour="room"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
     <div class="glass pad" data-tour="queue"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(false)}</div>
   </div>`;
 }
-function openHist(){ $('histBody').innerHTML = historyHTML(); $('hist').hidden = false; }
+function histFill(){
+  const clr = isAdm() && S.history.length ? '<button class="btn bad wide" style="margin-bottom:12px" data-act="clearhist">🗑 Hapus riwayat</button>' : '';
+  $('histBody').innerHTML = clr + historyHTML();
+}
+function openHist(){ histFill(); $('hist').hidden = false; }
 function viewAdmin(){
   const idle = S.game.status === 'idle';
   const ctrl = idle
@@ -393,8 +395,8 @@ function viewAdmin(){
   const members = S.members.map(x => {
     const n = S.entries.filter(e => e.member_id === x.id && e.zone === 'queue').length;
     const inR = S.entries.some(e => e.member_id === x.id && e.zone === 'room');
-    const info = [x.role === 'admin' ? 'Admin' : 'Member', n ? `${n} game antri` : '', inR ? 'di room' : ''].filter(Boolean).join(' · ');
-    return `<div class="item">${avatar(x,'sm')}<div class="info"><b>${esc(x.name)}</b><span class="mut">${info}</span></div><div class="acts"><button class="btn sm blue" data-act="addgames" data-id="${x.id}">+ Game</button>${x.role !== 'admin' ? `<button class="btn sm" data-act="del" data-id="${x.id}" aria-label="Hapus member">🗑</button>` : ''}</div></div>`;
+    const info = [x.role === 'admin' ? 'Admin' : 'Member', x.id === S.me.id ? 'kamu' : '', n ? `${n} game antri` : '', inR ? 'di room' : ''].filter(Boolean).join(' · ');
+    return `<div class="item">${avatar(x,'sm')}<div class="info"><b>${esc(x.name)}</b><span class="mut">${info}</span></div><div class="acts"><button class="btn sm blue" data-act="addgames" data-id="${x.id}">+ Game</button><button class="btn sm" data-act="del" data-id="${x.id}" aria-label="Hapus akun">🗑</button></div></div>`;
   }).join('');
   return `<div class="view"><h1>Admin</h1>
     <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(true)}${ctrl}</div>
@@ -418,12 +420,11 @@ function render(){
   $('app').innerHTML = v();
   const on = k => tab === k ? 'on' : '';
   let nav = `<button class="ni ${on('home')}" data-tab="home">${svg('home')}Dashboard</button>` +
-    `<button class="ni ${on('vip')}" data-tab="vip">${svg('gem')}VIP's</button>` +
-    `<button type="button" class="ni" data-act="hist">${svg('hist')}Riwayat</button>`;
+    `<button class="ni ${on('vip')}" data-tab="vip">${svg('gem')}VIP's</button>`;
   if (isAdm()) nav += `<button class="ni ${on('admin')}" data-tab="admin">${svg('shield')}Admin</button>`;
   nav += `<button class="ni ${on('profile')}" data-tab="profile">${svg('user')}Profil</button>`;
   $('nav').innerHTML = nav;
-  if (!$('hist').hidden) $('histBody').innerHTML = historyHTML();
+  if (!$('hist').hidden) histFill();
   tick();
 }
 function tick(){
@@ -463,7 +464,22 @@ const ACT = {
   start: () => run(() => rpc('admin_start', {p_token:token})),
   win: () => run(() => rpc('admin_end', {p_token:token, p_result:'win'})).then(ok => ok && toast('Game selesai: Win 🏆')),
   lose: () => run(() => rpc('admin_end', {p_token:token, p_result:'lose'})).then(ok => ok && toast('Game selesai: Lose 💀')),
-  del: id => { const m = byId(id); if (!m || !confirm('Hapus ' + m.name + '?')) return; run(() => rpc('admin_delete_member', {p_token:token, p_member:id})); },
+  del: async id => {
+    const m = byId(id); if (!m || !isAdm()) return;
+    const self = id === S.me.id, last = self && S.members.filter(x => x.role === 'admin').length <= 1;
+    const msg = self ? 'Hapus AKUNMU sendiri? Kamu akan keluar dan tidak bisa masuk lagi dengan sidik jari ini.' + (last ? '\n\nKamu admin terakhir: setelah ini tidak ada admin sampai kamu atur lewat SQL.' : '') : 'Hapus akun ' + m.name + '?';
+    if (!confirm(msg)) return;
+    if (self){
+      try { await rpc('admin_delete_member', {p_token:token, p_member:id}); await doLogout(false); toast('Akunmu sudah dihapus'); }
+      catch(e){ toast(e.message || 'Gagal menghapus akun'); }
+      return;
+    }
+    run(() => rpc('admin_delete_member', {p_token:token, p_member:id})).then(ok => ok && toast('Akun ' + m.name + ' dihapus'));
+  },
+  clearhist: () => {
+    if (!isAdm() || !confirm('Hapus semua riwayat game? Tidak bisa dibatalkan.')) return;
+    run(() => rpc('admin_clear_history', {p_token:token})).then(ok => ok && toast('Riwayat dihapus'));
+  },
   logout: () => doLogout(true),
   sawer: warnDonate,
   hist: openHist,
@@ -494,7 +510,6 @@ function buildSteps(){
   const st = [
     {tab:'home', title:'Selamat datang di ArcZ Comunity 👑', text:'Ini panduan singkat yang menunjukkan fungsi semua tombol. Tap Lanjut untuk mulai.'},
     {tab:'home', sel:'[data-tour="donate"]', title:'Tombol donate', text:'Tap untuk donate di Sociabuzz tanpa keluar dari web. Gunakan username dari web ini agar kamu dimasukkan ke antrian, lalu admin menambahkan jumlah game VIP kamu.'},
-    {tab:'home', sel:'[data-tour="status"]', title:'Status kamu', text:'Posisi dan jumlah game kamu di antrian.'},
     {tab:'home', sel:'[data-tour="stats"]', title:'Statistik', text:'Total game, Win, dan Lose milikmu.'},
     {tab:'home', sel:'[data-tour="histbtn"]', title:'Riwayat', text:'Membuka pop up daftar game yang sudah selesai beserta hasil Win atau Lose.'},
     {sel:'nav [data-tab="vip"]', title:"VIP's", text:'Halaman room game dan antrian VIP.'},
@@ -513,7 +528,7 @@ function buildSteps(){
     {tab:'admin', sel:'[data-act="outroom"]', title:'Keluar dari room', text:'Kembalikan pemain dari room ke antrian paling depan. Hanya bisa sebelum game dimulai.'},
     {tab:'admin', sel:'[data-act="start"]', title:'Start game', text:'Mulai game setelah room terisi.'},
     {tab:'admin', sel:'[data-act="win"]', title:'Win dan Lose', text:'Muncul saat game berjalan. Pilih hasil akhir: room dikosongkan dan hasilnya masuk riwayat.'},
-    {tab:'admin', sel:'[data-act="del"]', title:'🗑 Hapus member', text:'Hapus akun member beserta tiket antriannya.'}
+    {tab:'admin', sel:'[data-act="del"]', title:'🗑 Hapus akun', text:'Hapus akun beserta tiket antriannya. Admin juga bisa menghapus akunnya sendiri.'}
   );
   st.push({tab:'home', title:'Selesai 🎉', text:'Kamu siap. Panduan bisa dibuka lagi dari menu Profil.'});
   return st;
