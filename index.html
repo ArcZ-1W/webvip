@@ -114,6 +114,13 @@ input[type=text]::placeholder{color:var(--mut)}
 .setup{padding:20px;max-width:420px}
 .setup code{background:rgba(255,255,255,.12);padding:1px 6px;border-radius:6px;font-size:13px}
 
+/* Widget sawer Sociabuzz: tombol bawaan disembunyikan, jendelanya ikut gaya web ini */
+#wrapperFloatingBtn{display:none!important}
+#sbModalOverlay{background:rgba(8,10,25,.72)!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#sbModal{border-radius:22px;overflow:hidden!important;height:92vh!important;height:92dvh!important;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#sbModal iframe{background:#fff}
+#sawerClose{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:12px;z-index:10000000;width:42px;height:42px;border-radius:50%;border:1px solid var(--edge);background:rgba(24,28,52,.92);color:var(--tx);font-size:18px;font-weight:800;cursor:pointer;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+button.donate{width:100%;text-align:left;cursor:pointer}
 #tour{position:fixed;inset:0;z-index:80}
 #tour.dim{background:rgba(8,10,25,.80)}
 #tourHole{position:fixed;border-radius:16px;border:2px solid var(--gold);box-shadow:0 0 0 9999px rgba(8,10,25,.80);pointer-events:none;transition:left .25s,top .25s,width .25s,height .25s}
@@ -170,6 +177,7 @@ input[type=text]::placeholder{color:var(--mut)}
 
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://storage.sociabuzz.com/storage/js/main/buttononwebsite/index.min.js"></script>
 <script>
 /* ================== KONFIGURASI ================== */
 const CFG = {
@@ -374,7 +382,7 @@ function historyHTML(){
   if (!S.history.length) return '<div class="empty">Belum ada game yang selesai.</div>';
   return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar({name:p.name},'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
 }
-const donateHTML = () => `<a class="glass donate" data-tour="donate" href="${CFG.DONATE}" target="_blank" rel="noopener"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Donate di Sociabuzz, lalu admin menambahkan jumlah game kamu.</span></span></a>`;
+const donateHTML = () => `<button type="button" class="glass donate" data-tour="donate" data-act="sawer"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Sawer di Sociabuzz, lalu admin menambahkan jumlah game kamu.</span></span></button>`;
 const stateChip = () => `<span class="chip ${S.game.status}">${S.game.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span>`;
 const timerHTML = () => S.game.status === 'playing' ? `<p class="mut" style="margin-top:10px">Berjalan <b data-timer>00:00</b> sejak ${fmt(S.game.started_at)}</p>` : '';
 const myTickets = () => queueEntries().filter(e => e.member_id === S.me.id).length;
@@ -434,7 +442,7 @@ function render(){
   const v = {home:viewHome, history:viewHistory, admin:viewAdmin, profile:viewProfile}[tab] || viewHome;
   $('app').innerHTML = v();
   let nav = [['home','Beranda','home'], ['history','Riwayat','hist']].map(([k,l,i]) => `<button class="ni ${tab === k ? 'on' : ''}" data-tab="${k}">${svg(i)}${l}</button>`).join('');
-  nav += `<a class="ni gem" href="${CFG.DONATE}" target="_blank" rel="noopener">${svg('gem')}Donate</a>`;
+  nav += `<button type="button" class="ni gem" data-act="sawer">${svg('gem')}Sawer</button>`;
   if (isAdm()) nav += `<button class="ni ${tab === 'admin' ? 'on' : ''}" data-tab="admin">${svg('shield')}Admin</button>`;
   nav += `<button class="ni ${tab === 'profile' ? 'on' : ''}" data-tab="profile">${svg('user')}Profil</button>`;
   $('nav').innerHTML = nav;
@@ -475,6 +483,7 @@ const ACT = {
   lose: () => run(() => rpc('admin_end', {p_token:token, p_result:'lose'})).then(ok => ok && toast('Game selesai: Lose 💀')),
   del: id => { const m = byId(id); if (!m || !confirm('Hapus ' + m.name + '?')) return; run(() => rpc('admin_delete_member', {p_token:token, p_member:id})); },
   logout: () => doLogout(true),
+  sawer: () => openSawer(),
   camopen: startAuth,
   regsave: regSave,
   modeIn: () => setMode('in'),
@@ -497,11 +506,11 @@ function buildSteps(){
   const st = [
     {tab:'home', title:'Selamat datang 👑', text:'Ini panduan singkat yang menunjukkan fungsi semua tombol. Tap Lanjut untuk mulai.'},
     {tab:'home', sel:'[data-tour="room"]', title:'Room game', text:'Ada 4 kursi. Di sini terlihat siapa yang sedang main dan statusnya: Menunggu atau Sedang main.'},
-    {tab:'home', sel:'[data-tour="donate"]', title:'Mau jadi VIP?', text:'Tap kartu ini untuk donate di Sociabuzz. Setelah itu admin menambahkan jumlah game VIP kamu.'},
+    {tab:'home', sel:'[data-tour="donate"]', title:'Mau jadi VIP?', text:'Tap kartu ini untuk sawer di Sociabuzz tanpa keluar dari web. Setelah itu admin menambahkan jumlah game VIP kamu.'},
     {tab:'home', sel:'[data-tour="queue"]', title:'Antrian VIP', text:'Urutan giliran main. Kalau kamu punya beberapa game, tiketnya diselang-seling dengan member lain, misalnya tertulis "Game 2 dari 3".'},
     {tab:'home', sel:'nav [data-tab="home"]', title:'Beranda', text:'Kembali ke room dan antrian.'},
     {sel:'nav [data-tab="history"]', title:'Riwayat', text:'Daftar game yang sudah selesai beserta hasil Win atau Lose.'},
-    {sel:'nav .gem', title:'Donate', text:'Pintasan ke halaman donate Sociabuzz untuk join VIP.'},
+    {sel:'nav .gem', title:'Sawer', text:'Pintasan untuk membuka jendela sawer Sociabuzz dan join VIP.'},
     {sel:'nav [data-tab="profile"]', title:'Profil', text:'Lihat statusmu, jumlah game, Win, dan Lose.'},
     {tab:'profile', sel:'[data-tour="stats"]', title:'Statistik', text:'Total game, Win, dan Lose milikmu.'},
     {tab:'profile', sel:'[data-act="tour"]', title:'Tutorial', text:'Tap untuk membuka panduan ini lagi kapan saja.'},
@@ -565,6 +574,26 @@ function placeTour(){
   }
 }
 window.addEventListener('resize', placeTour);
+
+/* ---------- Sawer (widget Sociabuzz, tombol pakai gaya web ini) ---------- */
+function initSawer(){
+  try {
+    if (typeof sbBoW === 'undefined') return;
+    sbBoW.draw('zixixiangxiang', 'QmVyaSBEdWt1bmdhbg', 'position-bottom-right', '#76CC11', '#FFFFFF');
+    const close = document.createElement('button');
+    close.id = 'sawerClose'; close.type = 'button'; close.hidden = true;
+    close.setAttribute('aria-label', 'Tutup jendela sawer'); close.textContent = '✕';
+    document.body.appendChild(close);
+    const modal = $('sbModal'), overlay = $('sbModalOverlay');
+    close.onclick = () => overlay && overlay.click();
+    if (modal) new MutationObserver(() => { close.hidden = modal.style.display === 'none'; }).observe(modal, {attributes:true, attributeFilter:['style']});
+  } catch(e){}
+}
+function openSawer(){
+  const b = $('btnModal');
+  if (b) b.click(); else window.open(CFG.DONATE, '_blank', 'noopener');
+}
+initSawer();
 
 /* ---------- Boot ---------- */
 function initialTab(){
