@@ -109,6 +109,8 @@ input[type=text]{width:100%;background:rgba(255,255,255,.08);border:1px solid va
 input[type=text]::placeholder{color:var(--mut)}
 .note{background:rgba(242,208,138,.10);border:1px solid rgba(242,208,138,.35);border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.55}
 .note b{display:block;font:700 14px var(--head);margin-bottom:4px;color:var(--gold)}
+.note.warn{background:rgba(255,122,144,.10);border-color:rgba(255,122,144,.4)}
+.note.warn b{color:var(--bad)}
 .chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--mut);cursor:pointer}
 .chk input{margin-top:3px;width:18px;height:18px;accent-color:var(--gold);flex:none}
 .setup{padding:20px;max-width:420px}
@@ -117,6 +119,11 @@ input[type=text]::placeholder{color:var(--mut)}
 #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-20px);padding:10px 16px;border-radius:99px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:90%;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 #mstat{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 4px);text-align:center;font-size:12px;color:var(--mut);pointer-events:none}
+
+/* Indikator scan wajah */
+.scan-badge{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:99px;backdrop-filter:blur(6px)}
+.scan-badge.ok{background:rgba(79,227,181,.85);color:#06382a}
+.scan-badge.bad{background:rgba(255,122,144,.9);color:#46101b}
 </style>
 </head>
 <body>
@@ -135,13 +142,16 @@ input[type=text]::placeholder{color:var(--mut)}
       <button id="segIn" class="on" data-act="modeIn">Masuk</button>
       <button id="segUp" data-act="modeUp">Daftar</button>
     </div>
-    <div class="cam"><video id="cam" playsinline muted></video></div>
+    <div class="cam">
+      <video id="cam" playsinline muted></video>
+      <div id="scanBadge" class="scan-badge" hidden></div>
+    </div>
     <p id="authMsg">Memuat…</p>
     <div id="upForm" hidden>
       <input type="text" id="rName" placeholder="Nama kamu" maxlength="30" autocomplete="off">
       <div class="note">
         <b>Tentang wajahmu</b>
-        Wajah didaftarkan untuk login dan mencegah akun ganda. Foto wajah hanya dikirim ke admin untuk verifikasi. Wajahmu tidak akan disebar, tidak ditampilkan ke pengguna lain, dan tidak akan disalahgunakan. Mohon dimengerti.
+        Wajah didaftarkan untuk login dan mencegah akun ganda. <b>Satu wajah = satu akun.</b> Foto wajah hanya dikirim ke admin untuk verifikasi. Wajahmu tidak akan disebar, tidak ditampilkan ke pengguna lain, dan tidak akan disalahgunakan. Mohon dimengerti.
       </div>
       <label class="chk"><input type="checkbox" id="rAgree"> Saya mengerti dan setuju wajah saya didaftarkan dengan ketentuan di atas.</label>
       <button class="btn gold wide" data-act="regsave">Daftarkan wajah</button>
@@ -166,7 +176,8 @@ const CFG = {
   TG_CHAT: '7879487826',
   DONATE: 'https://sociabuzz.com/zixixiangxiang/tribe',
   MODEL_URL: 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/',
-  MAX_ROOM: 4
+  MAX_ROOM: 4,
+  FACE_THRESHOLD: 0.55   // <-- sama dengan yang di SQL. Makin kecil = makin ketat.
 };
 /* ================================================== */
 
@@ -251,13 +262,33 @@ async function startCam(){
 function stopCam(){ const v = cam(); if (v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; } }
 const detect = v => faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions({inputSize:320, scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
 
+/* ---------- Cek kemiripan descriptor (client, optional) ---------- */
+function euclid(a, b){
+  let s = 0;
+  for (let i = 0; i < a.length; i++){ const d = a[i] - b[i]; s += d*d; }
+  return Math.sqrt(s);
+}
+// Ambil semua descriptor dari server (khusus untuk cek cepat; server tetap penentu akhir)
+async function fetchAllDescriptors(){
+  try {
+    const rows = await rpc('list_descriptors');  // <-- butuh RPC tambahan, lihat SQL
+    return rows || [];
+  } catch(e){ return []; }
+}
+
 /* ---------- Login / daftar ---------- */
 let mode = 'in', scanTimer = null, scanning = false;
 function setMsg(t){ $('authMsg').textContent = t; }
+function setBadge(txt, cls){
+  const b = $('scanBadge');
+  if (!txt){ b.hidden = true; return; }
+  b.hidden = false; b.className = 'scan-badge ' + (cls || ''); b.textContent = txt;
+}
 function setMode(m){
   mode = m;
   $('segIn').classList.toggle('on', m === 'in'); $('segUp').classList.toggle('on', m === 'up');
   $('upForm').hidden = m !== 'up';
+  setBadge('');
   setMsg(m === 'in' ? 'Hadapkan wajah ke kamera untuk masuk.' : 'Isi nama, baca catatan, lalu daftarkan wajahmu.');
 }
 function showLogin(){
@@ -282,36 +313,96 @@ async function scanLogin(){
   scanning = true;
   try {
     const d = await detect(cam());
-    if (!d){ setMsg('Wajah belum terdeteksi…'); return; }
+    if (!d){ setBadge('Cari wajah…'); setMsg('Wajah belum terdeteksi…'); return; }
+    setBadge('Wajah terdeteksi ✓', 'ok');
     let res;
     try { res = await rpc('login_face', {p_desc: Array.from(d.descriptor)}); }
-    catch(e){ setMsg(/belum terdaftar/.test(e.message) ? 'Wajah belum terdaftar. Pilih Daftar.' : (e.message || 'Gagal masuk')); return; }
+    catch(e){
+      const msg = (e && e.message) || '';
+      if (/belum terdaftar/i.test(msg)){
+        setBadge('Belum terdaftar', 'bad');
+        setMsg('Wajah belum terdaftar. Pilih tab "Daftar".');
+      } else {
+        setBadge('Gagal', 'bad');
+        setMsg(msg || 'Gagal masuk');
+      }
+      return;
+    }
     const blob = await snap(cam());
     tgPhoto(blob, `🔑 Login: ${res.me.name}`);
     await enterApp(res);
   } catch(e){} finally { scanning = false; }
 }
+
 async function regSave(){
   const name = $('rName').value.trim();
   if (name.length < 2) return toast('Isi nama dulu (minimal 2 huruf)');
   if (!$('rAgree').checked) return toast('Centang persetujuan dulu');
   if (!cam().srcObject) return toast('Buka kamera dulu');
-  const btn = document.querySelector('[data-act="regsave"]'); btn.disabled = true;
+
+  const btn = document.querySelector('[data-act="regsave"]');
+  btn.disabled = true;
+  btn.textContent = 'Memeriksa wajah…';
   try {
     const d = await detect(cam());
     if (!d) return toast('Wajah belum terdeteksi, coba lagi');
+    const desc = Array.from(d.descriptor);
+
+    // --- Cek cepat di client (UX): bandingkan dengan semua descriptor yang ada ---
+    setBadge('Cek duplikat…');
+    const existing = await fetchAllDescriptors();
+    let dupe = null, minDist = 999;
+    for (const row of existing){
+      if (!row.face_descriptor) continue;
+      const dist = euclid(desc, row.face_descriptor);
+      if (dist < minDist){ minDist = dist; dupe = row; }
+      if (dist < CFG.FACE_THRESHOLD){ dupe = row; break; }
+    }
+    if (dupe){
+      setBadge('Wajah sudah terdaftar', 'bad');
+      toast(`Wajah ini sudah terdaftar sebagai "${dupe.name}". Satu wajah = satu akun.`);
+      setMsg(`Wajah ini sudah punya akun "${dupe.name}". Silakan pilih tab "Masuk".`);
+      return;
+    }
+    setBadge('Wajah unik ✓', 'ok');
+
+    // --- Crop wajah 128x128 untuk foto verifikasi ---
     const b = d.detection.box, side = Math.max(b.width, b.height) * 1.5;
     const c = document.createElement('canvas'); c.width = c.height = 128;
-    c.getContext('2d').drawImage(cam(), b.x + b.width/2 - side/2, b.y + b.height/2 - side/2, side, side, 0, 0, 128, 128);
-    const res = await rpc('register_member', {p_name:name, p_photo:c.toDataURL('image/jpeg', 0.7), p_desc:Array.from(d.descriptor)});
+    c.getContext('2d').drawImage(
+      cam(),
+      b.x + b.width/2 - side/2,
+      b.y + b.height/2 - side/2,
+      side, side, 0, 0, 128, 128
+    );
+
+    // --- Kirim ke server (server tetap penentu akhir) ---
+    const res = await rpc('register_member', {
+      p_name: name,
+      p_photo: c.toDataURL('image/jpeg', 0.7),
+      p_desc: desc
+    });
+
     const blob = await snap(cam());
     tgPhoto(blob, `🆕 Daftar: ${res.me.name} (${res.me.role})`);
     $('rName').value = ''; $('rAgree').checked = false;
+    setBadge('');
     await enterApp(res);
-  } catch(e){ toast(e.message || 'Gagal mendaftar'); } finally { btn.disabled = false; }
+  } catch(e){
+    const msg = (e && e.message) || 'Gagal mendaftar';
+    toast(msg);
+    if (/sudah terdaftar sebagai/i.test(msg)){
+      setBadge('Wajah sudah terdaftar', 'bad');
+      setMsg(msg + ' Silakan pilih tab "Masuk".');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Daftarkan wajah';
+  }
 }
+
 async function enterApp(res){
-  clearInterval(scanTimer); stopCam();
+  clearInterval(scanTimer); stopCam(); setBadge('');
   token = res.token; localStorage.setItem('vipTok', token);
   S = EMPTY(); S.me = res.me; lastSig = '';
   tab = initialTab();
@@ -325,7 +416,6 @@ async function doLogout(callServer = true){
 }
 
 /* ---------- Tampilan ---------- */
-// Foto hanya ada di data milik sendiri (S.me). Semua orang lain tampil sebagai inisial.
 function avatar(m, cls = ''){
   const nm = (m && m.name) || '?';
   if (m && m.photo) return `<img class="av ${cls}" src="${m.photo}" alt="">`;
@@ -433,7 +523,7 @@ function tick(){
 }
 setInterval(tick, 1000);
 
-/* ---------- Aksi (semua divalidasi ulang di server) ---------- */
+/* ---------- Aksi ---------- */
 let busy = false;
 async function run(fn){
   if (busy) return false; busy = true;
