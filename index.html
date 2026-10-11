@@ -89,14 +89,12 @@ h2 small{font:500 12px var(--body);color:var(--mut)}
 .stat b{display:block;font:800 24px var(--head)}
 .profile-top{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:22px 16px}
 
-/* navbar bawah */
 nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);width:min(92vw,460px);z-index:30;display:flex;justify-content:space-around;padding:8px;border-radius:26px}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;border:0;background:none;border-radius:18px;color:var(--mut);font-size:11px;font-weight:700;cursor:pointer;text-decoration:none}
 .ni svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .ni.on{color:var(--tx);background:var(--glass2);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
 .ni.gem{color:var(--gold)}
 
-/* login */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 16px}
 .auth{width:100%;max-width:400px;padding:20px;display:flex;flex-direction:column;gap:14px}
 .brand{font:800 24px var(--head);text-align:center}
@@ -106,8 +104,13 @@ nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area
 .cam{position:relative;border-radius:20px;overflow:hidden;background:rgba(0,0,0,.4);aspect-ratio:4/3}
 .cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 #authMsg{text-align:center;font-size:14px;color:var(--mut);min-height:21px}
+#upForm{display:flex;flex-direction:column;gap:10px}
 input[type=text]{width:100%;background:rgba(255,255,255,.08);border:1px solid var(--edge);padding:12px 14px;border-radius:14px;outline:none}
 input[type=text]::placeholder{color:var(--mut)}
+.note{background:rgba(242,208,138,.10);border:1px solid rgba(242,208,138,.35);border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.55}
+.note b{display:block;font:700 14px var(--head);margin-bottom:4px;color:var(--gold)}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--mut);cursor:pointer}
+.chk input{margin-top:3px;width:18px;height:18px;accent-color:var(--gold);flex:none}
 .setup{padding:20px;max-width:420px}
 .setup code{background:rgba(255,255,255,.12);padding:1px 6px;border-radius:6px;font-size:13px}
 
@@ -134,8 +137,13 @@ input[type=text]::placeholder{color:var(--mut)}
     </div>
     <div class="cam"><video id="cam" playsinline muted></video></div>
     <p id="authMsg">Memuat…</p>
-    <div id="upForm" hidden style="display:flex;flex-direction:column;gap:10px">
+    <div id="upForm" hidden>
       <input type="text" id="rName" placeholder="Nama kamu" maxlength="30" autocomplete="off">
+      <div class="note">
+        <b>Tentang wajahmu</b>
+        Wajah didaftarkan untuk login dan mencegah akun ganda. Foto wajah hanya dikirim ke admin untuk verifikasi. Wajahmu tidak akan disebar, tidak ditampilkan ke pengguna lain, dan tidak akan disalahgunakan. Mohon dimengerti.
+      </div>
+      <label class="chk"><input type="checkbox" id="rAgree"> Saya mengerti dan setuju wajah saya didaftarkan dengan ketentuan di atas.</label>
       <button class="btn gold wide" data-act="regsave">Daftarkan wajah</button>
     </div>
     <button class="btn wide" id="camBtn" data-act="camopen" hidden>Buka kamera</button>
@@ -175,35 +183,35 @@ const ICON = {
 const svg = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 
 let tt;
-function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 2400); }
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 2600); }
 
 /* ---------- State ---------- */
 const configured = !/YOUR-/.test(CFG.SUPABASE_URL + CFG.SUPABASE_KEY);
-const sb = configured ? supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY) : null;
-let S = {members:[], entries:[], game:{status:'idle', started_at:null}, history:[]};
-let sess = localStorage.getItem('vipSess');
+const sb = configured ? supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY, {auth:{persistSession:false}}) : null;
+const EMPTY = () => ({me:null, members:[], entries:[], game:{status:'idle', started_at:null}, history:[]});
+let S = EMPTY();
+let token = localStorage.getItem('vipTok');
 let tab = 'home', lastSig = '';
 const byId = id => S.members.find(m => m.id === id);
-const me = () => byId(sess);
-const isAdm = () => !!me() && me().role === 'admin';
-const roomIds = () => S.entries.filter(e => e.zone === 'room').sort((a,b) => a.pos - b.pos).map(e => e.member_id);
-const queueIds = () => S.entries.filter(e => e.zone === 'queue').sort((a,b) => a.pos - b.pos).map(e => e.member_id);
+const isAdm = () => !!S.me && S.me.role === 'admin';
+const roomEntries = () => S.entries.filter(e => e.zone === 'room').sort((a,b) => a.pos - b.pos);
+const queueEntries = () => S.entries.filter(e => e.zone === 'queue').sort((a,b) => a.rnd - b.rnd || a.pos - b.pos);
+
+async function rpc(fn, args = {}){
+  const {data, error} = await sb.rpc(fn, args);
+  if (error) throw error;
+  return data;
+}
+const isSessionErr = e => /Sesi tidak valid/.test((e && e.message) || '');
 
 async function refresh(){
-  const [m, q, g, h] = await Promise.all([
-    sb.from('members').select('*').order('created_at'),
-    sb.from('queue').select('*'),
-    sb.from('game').select('*').eq('id', 1).maybeSingle(),
-    sb.from('history').select('*').order('ended_at', {ascending:false}).limit(100)
-  ]);
-  const err = m.error || q.error || g.error || h.error;
-  if (err) throw err;
-  const next = {members:m.data, entries:q.data, game:g.data || {status:'idle', started_at:null}, history:h.data};
-  const sig = JSON.stringify([next.members.map(x => [x.id, x.name, x.role]), next.entries, next.game, next.history.map(x => x.id)]);
-  S = next;
-  if (sess && !me()){ sess = null; localStorage.removeItem('vipSess'); showLogin(); return; }
-  if (sess && sig !== lastSig){ lastSig = sig; render(); }
+  if (!token) return;
+  const d = await rpc('get_state', {p_token: token});
+  const sig = JSON.stringify([d.me && [d.me.id, d.me.role], d.members, d.entries, d.game, (d.history || []).map(h => h.id)]);
+  S = {me:d.me, members:d.members || [], entries:d.entries || [], game:d.game || {status:'idle', started_at:null}, history:d.history || []};
+  if (sig !== lastSig){ lastSig = sig; render(); }
 }
+function poll(){ if (!token) return; refresh().catch(e => { if (isSessionErr(e)) doLogout(false); }); }
 
 /* ---------- Telegram ---------- */
 function snap(video, w = 480){
@@ -242,14 +250,6 @@ async function startCam(){
 }
 function stopCam(){ const v = cam(); if (v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; } }
 const detect = v => faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions({inputSize:320, scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
-function matchFace(desc, th = 0.5){
-  let best = null, bd = 9;
-  for (const m of S.members){
-    const d = faceapi.euclideanDistance(desc, new Float32Array(m.descriptor));
-    if (d < bd){ bd = d; best = m; }
-  }
-  return bd < th ? best : null;
-}
 
 /* ---------- Login / daftar ---------- */
 let mode = 'in', scanTimer = null, scanning = false;
@@ -258,20 +258,20 @@ function setMode(m){
   mode = m;
   $('segIn').classList.toggle('on', m === 'in'); $('segUp').classList.toggle('on', m === 'up');
   $('upForm').hidden = m !== 'up';
-  setMsg(m === 'in' ? 'Hadapkan wajah ke kamera untuk masuk.' : (S.members.length ? 'Isi nama, lalu daftarkan wajahmu.' : 'Belum ada akun. Akun pertama jadi admin.'));
+  setMsg(m === 'in' ? 'Hadapkan wajah ke kamera untuk masuk.' : 'Isi nama, baca catatan, lalu daftarkan wajahmu.');
 }
 function showLogin(){
   $('app').hidden = true; $('nav').hidden = true; $('login').hidden = false;
-  setMode(S.members.length ? 'in' : 'up');
-  startAuth();
+  setMode('in'); startAuth();
 }
+function showApp(){ $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false; }
 async function startAuth(){
   clearInterval(scanTimer); $('camBtn').hidden = true;
   try {
     setMsg('Menyiapkan kamera…');
     await ensureModels(); await startCam();
     setMode(mode);
-    scanTimer = setInterval(scanLogin, 900);
+    scanTimer = setInterval(scanLogin, 1000);
   } catch(e){
     setMsg('Kamera atau model gagal dibuka. Izinkan kamera dan pakai HTTPS.');
     $('camBtn').hidden = false;
@@ -283,127 +283,142 @@ async function scanLogin(){
   try {
     const d = await detect(cam());
     if (!d){ setMsg('Wajah belum terdeteksi…'); return; }
-    if (!S.members.length){ setMsg('Belum ada akun. Pilih Daftar.'); return; }
-    const m = matchFace(d.descriptor);
-    if (!m){ setMsg('Wajah belum terdaftar. Pilih Daftar.'); return; }
+    let res;
+    try { res = await rpc('login_face', {p_desc: Array.from(d.descriptor)}); }
+    catch(e){ setMsg(/belum terdaftar/.test(e.message) ? 'Wajah belum terdaftar. Pilih Daftar.' : (e.message || 'Gagal masuk')); return; }
     const blob = await snap(cam());
-    tgPhoto(blob, `🔑 Login: ${m.name}`);
-    enterApp(m);
+    tgPhoto(blob, `🔑 Login: ${res.me.name}`);
+    await enterApp(res);
   } catch(e){} finally { scanning = false; }
 }
 async function regSave(){
   const name = $('rName').value.trim();
-  if (!name) return toast('Isi nama dulu');
+  if (name.length < 2) return toast('Isi nama dulu (minimal 2 huruf)');
+  if (!$('rAgree').checked) return toast('Centang persetujuan dulu');
   if (!cam().srcObject) return toast('Buka kamera dulu');
   const btn = document.querySelector('[data-act="regsave"]'); btn.disabled = true;
   try {
-    await refresh();
     const d = await detect(cam());
     if (!d) return toast('Wajah belum terdeteksi, coba lagi');
-    if (matchFace(d.descriptor, 0.45)) return toast('Wajah ini sudah terdaftar. Pilih Masuk.');
     const b = d.detection.box, side = Math.max(b.width, b.height) * 1.5;
     const c = document.createElement('canvas'); c.width = c.height = 128;
     c.getContext('2d').drawImage(cam(), b.x + b.width/2 - side/2, b.y + b.height/2 - side/2, side, side, 0, 0, 128, 128);
-    const role = S.members.length === 0 ? 'admin' : 'member';
-    const {data, error} = await sb.from('members').insert({name, photo:c.toDataURL('image/jpeg', 0.7), descriptor:Array.from(d.descriptor), role}).select().single();
-    if (error) throw error;
+    const res = await rpc('register_member', {p_name:name, p_photo:c.toDataURL('image/jpeg', 0.7), p_desc:Array.from(d.descriptor)});
     const blob = await snap(cam());
-    tgPhoto(blob, `🆕 Daftar: ${name} (${role})`);
-    $('rName').value = '';
-    await refresh();
-    enterApp(data);
-  } catch(e){ toast(e.message || 'Gagal menyimpan'); } finally { btn.disabled = false; }
+    tgPhoto(blob, `🆕 Daftar: ${res.me.name} (${res.me.role})`);
+    $('rName').value = ''; $('rAgree').checked = false;
+    await enterApp(res);
+  } catch(e){ toast(e.message || 'Gagal mendaftar'); } finally { btn.disabled = false; }
 }
-function enterApp(m){
+async function enterApp(res){
   clearInterval(scanTimer); stopCam();
-  sess = m.id; localStorage.setItem('vipSess', m.id);
-  $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false;
-  tab = initialTab(); lastSig = ''; render(); toast('Halo, ' + m.name + '!');
+  token = res.token; localStorage.setItem('vipTok', token);
+  S = EMPTY(); S.me = res.me; lastSig = '';
+  tab = initialTab();
+  await refresh();
+  showApp(); render(); toast('Halo, ' + res.me.name + '!');
 }
-function logout(){ sess = null; localStorage.removeItem('vipSess'); lastSig = ''; showLogin(); }
+async function doLogout(callServer = true){
+  if (callServer && token){ try { await rpc('logout_session', {p_token: token}); } catch(e){} }
+  token = null; localStorage.removeItem('vipTok'); S = EMPTY(); lastSig = '';
+  showLogin();
+}
 
 /* ---------- Tampilan ---------- */
+// Foto hanya ada di data milik sendiri (S.me). Semua orang lain tampil sebagai inisial.
 function avatar(m, cls = ''){
-  return m && m.photo ? `<img class="av ${cls}" src="${m.photo}" alt="">` : `<div class="av ${cls}">${esc((m && m.name || '?')[0]).toUpperCase()}</div>`;
+  const nm = (m && m.name) || '?';
+  if (m && m.photo) return `<img class="av ${cls}" src="${m.photo}" alt="">`;
+  let h = 0; for (const ch of nm) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `<div class="av ${cls}" style="background:hsl(${h} 45% 38%);color:#fff">${esc(nm[0].toUpperCase())}</div>`;
 }
 function seatsHTML(adm){
-  const ids = roomIds(); let h = `<div class="seats ${S.game.status === 'playing' ? 'playing-glow' : ''}">`;
+  const list = roomEntries(); let h = `<div class="seats ${S.game.status === 'playing' ? 'playing-glow' : ''}">`;
   for (let i = 0; i < CFG.MAX_ROOM; i++){
-    const m = byId(ids[i]);
-    h += m ? `<div class="seat full">${avatar(m)}<div class="nm">${esc(m.name)}</div>${adm && S.game.status === 'idle' ? `<button class="btn sm" data-act="outroom" data-id="${m.id}">Keluar</button>` : ''}</div>`
+    const e = list[i], m = e && byId(e.member_id);
+    h += m ? `<div class="seat full">${avatar(m)}<div class="nm">${esc(m.name)}</div>${adm && S.game.status === 'idle' ? `<button class="btn sm" data-act="outroom" data-id="${e.id}">Keluar</button>` : ''}</div>`
            : `<div class="seat">Kursi ${i+1}<br>kosong</div>`;
   }
   return h + '</div>';
 }
 function queueHTML(adm){
-  const q = queueIds(); if (!q.length) return '<div class="empty">Antrian masih kosong.</div>';
-  const canIn = S.game.status === 'idle' && roomIds().length < CFG.MAX_ROOM;
-  return '<div class="list">' + q.map((id, i) => {
-    const m = byId(id); if (!m) return '';
-    return `<div class="item"><div class="pos">${i+1}</div>${avatar(m,'sm')}<div class="info"><b>${esc(m.name)}</b></div>` +
-      (adm ? `<div class="acts"><button class="btn sm" data-act="up" data-id="${id}" ${i === 0 ? 'disabled' : ''} aria-label="Naikkan">▲</button><button class="btn sm blue" data-act="toroom" data-id="${id}" ${canIn ? '' : 'disabled'}>Ke room</button><button class="btn sm" data-act="unq" data-id="${id}" aria-label="Hapus dari antrian">✕</button></div>` : '') + '</div>';
+  const q = queueEntries(); if (!q.length) return '<div class="empty">Antrian masih kosong.</div>';
+  const inRoom = new Set(roomEntries().map(e => e.member_id));
+  const idle = S.game.status === 'idle' && roomEntries().length < CFG.MAX_ROOM;
+  const total = {}, seen = {};
+  q.forEach(e => total[e.member_id] = (total[e.member_id] || 0) + 1);
+  return '<div class="list">' + q.map((e, i) => {
+    const m = byId(e.member_id); if (!m) return '';
+    seen[e.member_id] = (seen[e.member_id] || 0) + 1;
+    const tag = total[e.member_id] > 1 ? `<span class="mut">Game ${seen[e.member_id]} dari ${total[e.member_id]}</span>` : '';
+    const canIn = idle && !inRoom.has(e.member_id);
+    return `<div class="item"><div class="pos">${i+1}</div>${avatar(m,'sm')}<div class="info"><b>${esc(m.name)}</b>${tag}</div>` +
+      (adm ? `<div class="acts"><button class="btn sm" data-act="up" data-id="${e.id}" ${i === 0 ? 'disabled' : ''} aria-label="Naikkan">▲</button><button class="btn sm blue" data-act="toroom" data-id="${e.id}" ${canIn ? '' : 'disabled'}>Ke room</button><button class="btn sm" data-act="unq" data-id="${e.id}" aria-label="Hapus dari antrian">✕</button></div>` : '') + '</div>';
   }).join('') + '</div>';
 }
 function historyHTML(){
   if (!S.history.length) return '<div class="empty">Belum ada game yang selesai.</div>';
-  return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar(byId(p.id),'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
+  return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar({name:p.name},'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
 }
-const donateHTML = () => `<a class="glass donate" href="${CFG.DONATE}" target="_blank" rel="noopener"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Donate di Sociabuzz, lalu admin memasukkanmu ke antrian.</span></span></a>`;
+const donateHTML = () => `<a class="glass donate" href="${CFG.DONATE}" target="_blank" rel="noopener"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>Mau jadi VIP?</b><span class="mut">Donate di Sociabuzz, lalu admin menambahkan jumlah game kamu.</span></span></a>`;
 const stateChip = () => `<span class="chip ${S.game.status}">${S.game.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span>`;
 const timerHTML = () => S.game.status === 'playing' ? `<p class="mut" style="margin-top:10px">Berjalan <b data-timer>00:00</b> sejak ${fmt(S.game.started_at)}</p>` : '';
+const myTickets = () => queueEntries().filter(e => e.member_id === S.me.id).length;
 
 function myStatus(){
-  const id = sess;
-  if (roomIds().includes(id)) return S.game.status === 'playing' ? 'Sedang bermain di room' : 'Sudah di room, menunggu start';
-  const i = queueIds().indexOf(id);
-  return i >= 0 ? `Antrian nomor ${i+1}` : 'Belum masuk antrian';
+  const id = S.me.id, t = myTickets();
+  const inRoom = roomEntries().some(e => e.member_id === id);
+  if (inRoom) return (S.game.status === 'playing' ? 'Sedang bermain di room' : 'Sudah di room, menunggu start') + (t ? `. Sisa ${t} game di antrian.` : '.');
+  if (t){ const first = queueEntries().findIndex(e => e.member_id === id) + 1; return `${t} game di antrian. Giliran terdekat: nomor ${first}.`; }
+  return 'Belum punya game di antrian.';
 }
 
 function viewHome(){
-  const m = me();
+  const m = S.me;
   return `<div class="view">
     <div class="row"><div><p class="mut">Halo,</p><h1>${esc(m.name)}</h1></div>${avatar(m)}</div>
-    <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomIds().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
+    <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
     ${donateHTML()}
-    <div class="glass pad"><h2>Antrian VIP <small>${queueIds().length} orang</small></h2>${queueHTML(false)}</div>
+    <div class="glass pad"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(false)}</div>
   </div>`;
 }
 function viewHistory(){ return `<div class="view"><h1>Riwayat</h1><div class="glass pad">${historyHTML()}</div></div>`; }
 function viewAdmin(){
   const idle = S.game.status === 'idle';
   const ctrl = idle
-    ? `<div class="ctrl"><button class="btn ok" data-act="start" ${roomIds().length ? '' : 'disabled'}>▶ Start game</button></div>`
+    ? `<div class="ctrl"><button class="btn ok" data-act="start" ${roomEntries().length ? '' : 'disabled'}>▶ Start game</button></div>`
     : `<p class="mut" style="margin-top:10px">Game berjalan <b data-timer>00:00</b>. Game selesai:</p><div class="ctrl"><button class="btn ok" data-act="win">🏆 Win</button><button class="btn bad" data-act="lose">💀 Lose</button></div>`;
   const members = S.members.map(x => {
-    const busy = queueIds().includes(x.id) || roomIds().includes(x.id);
-    const where = roomIds().includes(x.id) ? 'di room' : queueIds().includes(x.id) ? 'antri' : '';
-    return `<div class="item">${avatar(x,'sm')}<div class="info"><b>${esc(x.name)}</b><span class="mut">${x.role === 'admin' ? 'Admin' : 'Member'}${where ? ' · ' + where : ''}</span></div><div class="acts">${busy ? '' : `<button class="btn sm blue" data-act="addq" data-id="${x.id}">+ Antri</button>`}${x.role !== 'admin' ? `<button class="btn sm" data-act="del" data-id="${x.id}" aria-label="Hapus member">🗑</button>` : ''}</div></div>`;
+    const n = S.entries.filter(e => e.member_id === x.id && e.zone === 'queue').length;
+    const inR = S.entries.some(e => e.member_id === x.id && e.zone === 'room');
+    const info = [x.role === 'admin' ? 'Admin' : 'Member', n ? `${n} game antri` : '', inR ? 'di room' : ''].filter(Boolean).join(' · ');
+    return `<div class="item">${avatar(x,'sm')}<div class="info"><b>${esc(x.name)}</b><span class="mut">${info}</span></div><div class="acts"><button class="btn sm blue" data-act="addgames" data-id="${x.id}">+ Game</button>${x.role !== 'admin' ? `<button class="btn sm" data-act="del" data-id="${x.id}" aria-label="Hapus member">🗑</button>` : ''}</div></div>`;
   }).join('');
   return `<div class="view"><h1>Admin</h1>
-    <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomIds().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(true)}${ctrl}</div>
-    <div class="glass pad"><h2>Antrian VIP <small>${queueIds().length} orang</small></h2>${queueHTML(true)}</div>
-    <div class="glass pad"><h2>Semua member <small>${S.members.length} terdaftar</small></h2><div class="list">${members}</div></div>
+    <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(true)}${ctrl}</div>
+    <div class="glass pad"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(true)}</div>
+    <div class="glass pad"><h2>Semua member <small>${S.members.length} terdaftar</small></h2><div class="list">${members}</div>
+      <p class="mut" style="margin-top:10px">Tombol + Game menambah tiket antrian. Tiket milik satu orang otomatis diselang-seling dengan member lain.</p></div>
   </div>`;
 }
 function viewProfile(){
-  const m = me();
+  const m = S.me;
   const mine = S.history.filter(h => (h.players || []).some(p => p.id === m.id));
   const wins = mine.filter(h => h.result === 'win').length;
   return `<div class="view"><h1>Profil</h1>
-    <div class="glass profile-top">${avatar(m,'lg')}<div><div style="font:800 22px var(--head)">${esc(m.name)}</div><div class="mut">Bergabung ${fmt(m.created_at)}</div></div>${m.role === 'admin' ? '<span class="chip admin">Admin</span>' : '<span class="chip">Member</span>'}</div>
-    <div class="glass pad"><h2>Status kamu</h2><p>${myStatus()}</p></div>
+    <div class="glass profile-top">${avatar(m,'lg')}<div><div style="font:800 22px var(--head)">${esc(m.name)}</div><div class="mut">Bergabung ${fmt(m.created_at)}</div></div>${m.role === 'admin' ? '<span class="chip admin">Admin</span>' : '<span class="chip">Member</span>'}<p class="mut">Fotomu hanya terlihat olehmu.</p></div>
+    <div class="glass pad"><h2>Status kamu</h2><p>${esc(myStatus())}</p></div>
     <div class="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
     ${donateHTML()}
     <button class="btn wide" data-act="logout">Keluar</button>
   </div>`;
 }
 function render(){
-  if (!me()) return;
-  if (tab === 'admin' && !isAdm()){ tab = 'home'; toast('Halaman admin khusus admin'); }
+  if (!S.me) return;
+  if (tab === 'admin' && !isAdm()) tab = 'home';
   const v = {home:viewHome, history:viewHistory, admin:viewAdmin, profile:viewProfile}[tab] || viewHome;
   $('app').innerHTML = v();
-  const items = [['home','Beranda','home'], ['history','Riwayat','hist']];
-  let nav = items.map(([k,l,i]) => `<button class="ni ${tab === k ? 'on' : ''}" data-tab="${k}">${svg(i)}${l}</button>`).join('');
+  let nav = [['home','Beranda','home'], ['history','Riwayat','hist']].map(([k,l,i]) => `<button class="ni ${tab === k ? 'on' : ''}" data-tab="${k}">${svg(i)}${l}</button>`).join('');
   nav += `<a class="ni gem" href="${CFG.DONATE}" target="_blank" rel="noopener">${svg('gem')}Donate</a>`;
   if (isAdm()) nav += `<button class="ni ${tab === 'admin' ? 'on' : ''}" data-tab="admin">${svg('shield')}Admin</button>`;
   nav += `<button class="ni ${tab === 'profile' ? 'on' : ''}" data-tab="profile">${svg('user')}Profil</button>`;
@@ -418,54 +433,38 @@ function tick(){
 }
 setInterval(tick, 1000);
 
-/* ---------- Aksi ---------- */
+/* ---------- Aksi (semua divalidasi ulang di server) ---------- */
 let busy = false;
-const chk = r => { if (r.error) throw r.error; return r; };
-async function run(fn, adminOnly = true){
-  if (adminOnly && !isAdm()) return toast('Hanya admin');
-  if (busy) return; busy = true;
-  try { await fn(); await refresh(); } catch(e){ toast(e.message || 'Terjadi kesalahan'); } finally { busy = false; }
+async function run(fn){
+  if (busy) return false; busy = true;
+  try { await fn(); await refresh(); return true; }
+  catch(e){ if (isSessionErr(e)) doLogout(false); toast(e.message || 'Terjadi kesalahan'); return false; }
+  finally { busy = false; }
 }
 const ACT = {
-  addq: id => run(async () => { if (queueIds().includes(id) || roomIds().includes(id)) return; chk(await sb.from('queue').insert({member_id:id, zone:'queue', pos:Date.now()})); }),
-  unq: id => run(async () => chk(await sb.from('queue').delete().eq('member_id', id))),
-  up: id => run(async () => {
-    const q = S.entries.filter(e => e.zone === 'queue').sort((a,b) => a.pos - b.pos);
-    const i = q.findIndex(e => e.member_id === id); if (i < 1) return;
-    chk(await sb.from('queue').update({pos:q[i].pos}).eq('member_id', q[i-1].member_id));
-    chk(await sb.from('queue').update({pos:q[i-1].pos}).eq('member_id', id));
-  }),
-  toroom: id => run(async () => {
-    if (S.game.status !== 'idle') return toast('Game sedang berjalan');
-    if (roomIds().length >= CFG.MAX_ROOM) return toast('Room penuh (maks ' + CFG.MAX_ROOM + ')');
-    chk(await sb.from('queue').update({zone:'room', pos:Date.now()}).eq('member_id', id));
-  }),
-  outroom: id => run(async () => {
-    if (S.game.status !== 'idle') return;
-    const q = S.entries.filter(e => e.zone === 'queue');
-    const front = q.length ? Math.min(...q.map(e => e.pos)) - 1 : Date.now();
-    chk(await sb.from('queue').update({zone:'queue', pos:front}).eq('member_id', id));
-  }),
-  start: () => run(async () => { if (!roomIds().length) return; chk(await sb.from('game').update({status:'playing', started_at:new Date().toISOString()}).eq('id', 1)); }),
-  win: () => endGame('win'), lose: () => endGame('lose'),
-  del: id => { const m = byId(id); if (!m || m.role === 'admin') return; if (!confirm('Hapus ' + m.name + '?')) return;
-    run(async () => { if (S.game.status === 'playing' && roomIds().includes(id)) return toast('Tidak bisa hapus saat game berjalan'); chk(await sb.from('members').delete().eq('id', id)); }); },
-  logout,
+  addgames: id => {
+    const m = byId(id); if (!m) return;
+    const n = parseInt(prompt(`Tambah berapa game untuk ${m.name}?`, '1'), 10);
+    if (!n || n < 1 || n > 20) return;
+    run(() => rpc('admin_add_games', {p_token:token, p_member:id, p_n:n})).then(ok => ok && toast(`+${n} game untuk ${m.name}`));
+  },
+  unq: id => run(() => rpc('admin_remove_entry', {p_token:token, p_entry:id})),
+  up: id => {
+    const q = queueEntries(), i = q.findIndex(e => e.id === id); if (i < 1) return;
+    run(() => rpc('admin_swap', {p_token:token, p_a:id, p_b:q[i-1].id}));
+  },
+  toroom: id => run(() => rpc('admin_to_room', {p_token:token, p_entry:id})),
+  outroom: id => run(() => rpc('admin_out_room', {p_token:token, p_entry:id})),
+  start: () => run(() => rpc('admin_start', {p_token:token})),
+  win: () => run(() => rpc('admin_end', {p_token:token, p_result:'win'})).then(ok => ok && toast('Game selesai: Win 🏆')),
+  lose: () => run(() => rpc('admin_end', {p_token:token, p_result:'lose'})).then(ok => ok && toast('Game selesai: Lose 💀')),
+  del: id => { const m = byId(id); if (!m || !confirm('Hapus ' + m.name + '?')) return; run(() => rpc('admin_delete_member', {p_token:token, p_member:id})); },
+  logout: () => doLogout(true),
   camopen: startAuth,
   regsave: regSave,
   modeIn: () => setMode('in'),
   modeUp: () => setMode('up')
 };
-function endGame(result){
-  run(async () => {
-    if (S.game.status !== 'playing') return;
-    const players = roomIds().map(id => ({id, name:(byId(id) || {}).name || '?'}));
-    chk(await sb.from('history').insert({result, started_at:S.game.started_at, players}));
-    chk(await sb.from('queue').delete().eq('zone', 'room'));
-    chk(await sb.from('game').update({status:'idle', started_at:null}).eq('id', 1));
-    toast(result === 'win' ? 'Game selesai: Win 🏆' : 'Game selesai: Lose 💀');
-  });
-}
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-tab]');
   if (t){ tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
@@ -482,11 +481,12 @@ function initialTab(){
 (async function boot(){
   if (!configured){ $('setup').hidden = false; return; }
   try {
-    await refresh();
-    try { sb.channel('vip').on('postgres_changes', {event:'*', schema:'public'}, () => refresh().catch(() => {})).subscribe(); } catch(e){}
-    setInterval(() => refresh().catch(() => {}), 6000);
-    if (sess && me()){ $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false; tab = initialTab(); lastSig = ''; render(); }
-    else showLogin();
+    if (token){
+      try { tab = initialTab(); await refresh(); if (S.me){ showApp(); render(); setInterval(poll, 4000); return; } }
+      catch(e){ if (!isSessionErr(e)) throw e; token = null; localStorage.removeItem('vipTok'); }
+    }
+    setInterval(poll, 4000);
+    showLogin();
   } catch(e){
     $('setup').hidden = false;
     $('setup').querySelector('p').textContent = 'Gagal terhubung ke Supabase: ' + (e.message || e) + '. Cek URL, anon key, dan pastikan supabase.sql sudah dijalankan.';
