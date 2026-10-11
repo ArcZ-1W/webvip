@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VIP Queue</title>
+<style>
+:root{--bg:#0b0d14;--card:#151826;--card2:#1b1f31;--line:#262b40;--tx:#eef0f8;--mut:#8a90a8;--ac:#f5c542;--ok:#34d399;--bad:#f87171;--blue:#60a5fa}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(11,13,20,.92);backdrop-filter:blur(8px);z-index:5}
+.logo{font-weight:800;font-size:18px;letter-spacing:.3px}
+header a{color:var(--mut);font-size:13px;text-decoration:none}
+main{max-width:640px;margin:0 auto;padding:14px 14px 60px;display:flex;flex-direction:column;gap:14px}
+section{display:flex;flex-direction:column;gap:14px}
+[hidden]{display:none!important}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.card h2{font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h2 small{color:var(--mut);font-weight:500;font-size:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mut{color:var(--mut);font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card2);color:var(--tx);padding:10px 14px;border-radius:12px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:9px}
+.btn.gold{background:linear-gradient(135deg,#f5c542,#f59e0b);color:#1a1300;border:0}
+.btn.big{padding:15px;font-size:16px;width:100%}
+.btn.ok{background:var(--ok);color:#052e1f;border:0}
+.btn.bad{background:var(--bad);color:#3b0a0a;border:0}
+.btn.blue{background:var(--blue);color:#06223f;border:0}
+.badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--card2);color:var(--mut)}
+.badge.playing{background:rgba(52,211,153,.15);color:var(--ok)}
+.badge.win{background:rgba(52,211,153,.15);color:var(--ok)}
+.badge.lose{background:rgba(248,113,113,.15);color:var(--bad)}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slot{background:var(--card2);border:1px dashed var(--line);border-radius:14px;padding:10px 4px;text-align:center;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--mut)}
+.slot.full{border-style:solid;border-color:var(--ac);color:var(--tx)}
+.slot .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.av{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--line);flex:none}
+.av.sm{width:36px;height:36px}
+.av.ph{display:flex;align-items:center;justify-content:center;background:var(--card2);color:var(--mut);font-weight:700}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;align-items:center;gap:10px;background:var(--card2);border-radius:12px;padding:8px 10px}
+.item .info{flex:1;min-width:0}
+.item .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pos{width:26px;height:26px;border-radius:50%;background:var(--ac);color:#1a1300;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.empty{color:var(--mut);text-align:center;padding:14px;font-size:14px}
+.cam{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:4/3;margin-bottom:10px}
+.cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+input[type=text]{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--tx);padding:11px 12px;border-radius:12px;font:inherit;margin-bottom:10px}
+label.chk{display:flex;gap:8px;align-items:center;margin:2px 0 12px;color:var(--mut);font-size:14px}
+.ctrl{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ctrl .btn{flex:1}
+.hist{display:flex;flex-direction:column;gap:6px;background:var(--card2);border-radius:12px;padding:10px}
+.hist .top{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mut)}
+.avs{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.avs span{font-size:13px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:99px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90%}
+#toast.on{opacity:1}
+#mstat{font-size:12px;color:var(--mut);text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">👑 VIP Queue</div>
+  <a id="navlink" href="#/add">Admin</a>
+</header>
+
+<main>
+  <!-- ===== HALAMAN PUBLIK ===== -->
+  <section id="pub"></section>
+
+  <!-- ===== HALAMAN /add ===== -->
+  <section id="adm" hidden>
+    <div id="loginBox" class="card" hidden>
+      <h2>🔐 Login Wajah</h2>
+      <p class="mut" style="margin-bottom:10px">Arahkan wajah ke kamera. Login otomatis kalau wajah terdaftar.</p>
+      <div class="cam"><video id="vLogin" playsinline muted></video></div>
+      <p id="loginMsg" class="mut" style="margin-bottom:10px">Kamera belum aktif.</p>
+      <button class="btn" data-act="logincam" style="width:100%">📷 Buka kamera</button>
+    </div>
+
+    <div id="panel" hidden>
+      <div class="card row" id="whoCard"><div id="who"></div><button class="btn sm" data-act="logout">Keluar</button></div>
+      <div class="card" id="a-room"></div>
+      <div class="card" id="a-queue"></div>
+
+      <div class="card" id="regCard">
+        <h2 id="regTitle">➕ Daftar VIP Baru</h2>
+        <input type="text" id="rName" placeholder="Nama VIP" maxlength="30" autocomplete="off">
+        <div class="cam"><video id="vReg" playsinline muted></video></div>
+        <label class="chk" id="rQueueWrap"><input type="checkbox" id="rQueue" checked> Langsung masuk antrian</label>
+        <div class="ctrl" style="margin-top:0">
+          <button class="btn" data-act="regcam">📷 Buka kamera</button>
+          <button class="btn gold" data-act="regsave">Simpan wajah</button>
+        </div>
+      </div>
+
+      <div class="card" id="a-members"></div>
+      <div class="card" id="a-history"></div>
+    </div>
+  </section>
+
+  <div id="mstat"></div>
+</main>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+<script>
+const DONATE = 'https://sociabuzz.com/zixixiangxiang/tribe';
+const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
+const KEY = 'vipq_v1';
+const MAX_ROOM = 4;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const fmt = ts => new Date(ts).toLocaleString('id-ID', {dateStyle:'short', timeStyle:'short'});
+
+/* ---------- Data ---------- */
+const DEF = () => ({members:[], queue:[], room:[], status:'idle', startedAt:null, history:[]});
+function load(){ try { return Object.assign(DEF(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch(e){ return DEF(); } }
+let S = load();
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){ toast('Penyimpanan penuh'); } }
+const byId = id => S.members.find(m => m.id === id);
+let sess = null;
+try { sess = sessionStorage.getItem('vipSess'); } catch(e){}
+const me = () => byId(sess);
+const isAdm = () => { const m = me(); return !!m && m.role === 'admin'; };
+
+let tt;
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 2200); }
+
+/* ---------- Routing ---------- */
+const onAddRoute = () => /\/add\/?$/.test(location.pathname) || /^#\/?add/.test(location.hash);
+
+/* ---------- Render: helper ---------- */
+function avatar(m, cls=''){
+  return m && m.photo ? `<img class="av ${cls}" src="${m.photo}" alt="">` : `<div class="av ph ${cls}">?</div>`;
+}
+function roomHTML(adm){
+  let h = '<div class="slots">';
+  for (let i = 0; i < MAX_ROOM; i++){
+    const m = byId(S.room[i]);
+    h += m
+      ? `<div class="slot full">${avatar(m)}<div class="nm">${esc(m.name)}</div>${adm && S.status === 'idle' ? `<button class="btn sm" data-act="outroom" data-id="${m.id}">Keluar</button>` : ''}</div>`
+      : `<div class="slot">Kosong<br>${i+1}/${MAX_ROOM}</div>`;
+  }
+  return h + '</div>';
+}
+function queueHTML(adm){
+  if (!S.queue.length) return '<div class="empty">Antrian kosong</div>';
+  return '<div class="list">' + S.queue.map((id, i) => {
+    const m = byId(id); if (!m) return '';
+    const canIn = S.status === 'idle' && S.room.length < MAX_ROOM;
+    return `<div class="item"><div class="pos">${i+1}</div>${avatar(m,'sm')}<div class="info"><b>${esc(m.name)}</b></div>` +
+      (adm ? `<div class="acts"><button class="btn sm" data-act="up" data-id="${id}" ${i===0?'disabled':''}>⬆</button><button class="btn sm blue" data-act="toroom" data-id="${id}" ${canIn?'':'disabled'}>Ke room</button><button class="btn sm" data-act="unq" data-id="${id}">✕</button></div>` : '') +
+      '</div>';
+  }).join('') + '</div>';
+}
+function historyHTML(){
+  if (!S.history.length) return '<div class="empty">Belum ada riwayat game</div>';
+  return '<div class="list">' + S.history.map(h => `
+    <div class="hist"><div class="top"><span>${fmt(h.endedAt)}</span><span class="badge ${h.result}">${h.result === 'win' ? '🏆 WIN' : '💀 LOSE'}</span></div>
+    <div class="avs">${h.players.map(p => `${avatar(byId(p.id),'sm')}<span>${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
+}
+
+/* ---------- Render: publik ---------- */
+function renderPublic(){
+  $('pub').innerHTML = `
+    <a class="btn gold big" target="_blank" rel="noopener" href="${DONATE}">💎 Join VIP — Donate di Sociabuzz</a>
+    <div class="card"><h2>🎮 Room Game <span class="badge ${S.status}" style="margin-left:auto">${S.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span></h2>${roomHTML(false)}
+      ${S.status === 'playing' ? `<p class="mut" style="margin-top:10px">Mulai ${fmt(S.startedAt)}</p>` : ''}</div>
+    <div class="card"><h2>⏳ Antrian VIP <small>${S.queue.length} orang</small></h2>${queueHTML(false)}</div>
+    <div class="card"><h2>📜 Riwayat</h2>${historyHTML()}</div>`;
+}
+
+/* ---------- Render: admin ---------- */
+function renderAdmin(){
+  const m = me(), setup = S.members.length === 0;
+  $('loginBox').hidden = !!(setup || m);
+  $('panel').hidden = !(setup || m);
+  ['whoCard','a-room','a-queue','a-members','a-history'].forEach(id => $(id).hidden = setup);
+  $('regCard').hidden = !(setup || isAdm());
+  $('regTitle').textContent = setup ? '👑 Daftarkan Admin Pertama' : '➕ Daftar VIP Baru';
+  $('rQueueWrap').hidden = setup;
+  if (setup || !m) return;
+
+  $('who').innerHTML = `<div class="item" style="background:none;padding:0">${avatar(m,'sm')}<div class="info"><b>${esc(m.name)}</b><span class="mut">${m.role === 'admin' ? 'Admin' : 'VIP (hanya lihat)'}</span></div></div>`;
+  const adm = isAdm();
+
+  let ctrl = '';
+  if (adm){
+    ctrl = S.status === 'idle'
+      ? `<div class="ctrl"><button class="btn ok" data-act="start" ${S.room.length ? '' : 'disabled'}>▶ Start Game</button></div>`
+      : `<p class="mut" style="margin-top:10px">Game berjalan sejak ${fmt(S.startedAt)}. Game selesai:</p><div class="ctrl"><button class="btn ok" data-act="win">🏆 Win</button><button class="btn bad" data-act="lose">💀 Lose</button></div>`;
+  }
+  $('a-room').innerHTML = `<h2>🎮 Room Game <small>${S.room.length}/${MAX_ROOM}</small><span class="badge ${S.status}" style="margin-left:auto">${S.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span></h2>${roomHTML(adm)}${ctrl}`;
+  $('a-queue').innerHTML = `<h2>⏳ Antrian VIP <small>${S.queue.length} orang</small></h2>${queueHTML(adm)}`;
+
+  $('a-members').innerHTML = `<h2>👥 Daftar VIP <small>${S.members.length} terdaftar</small></h2><div class="list">` + S.members.map(x => {
+    const busy = S.queue.includes(x.id) || S.room.includes(x.id);
+    return `<div class="item">${avatar(x,'sm')}<div class="info"><b>${esc(x.name)}</b><span class="mut">${x.role === 'admin' ? 'Admin' : 'VIP'}${S.room.includes(x.id) ? ' • di room' : S.queue.includes(x.id) ? ' • antri' : ''}</span></div>` +
+      (adm ? `<div class="acts">${busy ? '' : `<button class="btn sm blue" data-act="addq" data-id="${x.id}">+ Antri</button>`}${x.role !== 'admin' ? `<button class="btn sm" data-act="del" data-id="${x.id}">🗑</button>` : ''}</div>` : '') + '</div>';
+  }).join('') + '</div>';
+  $('a-history').innerHTML = `<h2>📜 Riwayat</h2>${historyHTML()}`;
+}
+
+function renderAll(){
+  const adm = onAddRoute();
+  $('pub').hidden = adm; $('adm').hidden = !adm;
+  const nl = $('navlink');
+  if (adm){
+    nl.textContent = '← Antrian';
+    nl.href = /\/add\/?$/.test(location.pathname) ? location.pathname.replace(/add\/?$/, '') : '#/';
+    renderAdmin();
+  } else {
+    nl.textContent = 'Admin'; nl.href = '#/add';
+    renderPublic();
+  }
+}
+
+/* ---------- Aksi ---------- */
+function guard(){ if (!isAdm()){ toast('Hanya admin'); return false; } return true; }
+function addQueue(id){ if (!guard()) return; if (S.queue.includes(id) || S.room.includes(id)) return; S.queue.push(id); commit(); }
+function removeQueue(id){ if (!guard()) return; S.queue = S.queue.filter(x => x !== id); commit(); }
+function moveUp(id){ if (!guard()) return; const i = S.queue.indexOf(id); if (i > 0){ [S.queue[i-1], S.queue[i]] = [S.queue[i], S.queue[i-1]]; commit(); } }
+function toRoom(id){
+  if (!guard()) return;
+  if (S.status !== 'idle') return toast('Game sedang berjalan');
+  if (S.room.length >= MAX_ROOM) return toast('Room penuh (maks ' + MAX_ROOM + ')');
+  S.queue = S.queue.filter(x => x !== id); S.room.push(id); commit();
+}
+function outRoom(id){ if (!guard() || S.status !== 'idle') return; S.room = S.room.filter(x => x !== id); S.queue.unshift(id); commit(); }
+function startGame(){ if (!guard() || !S.room.length) return; S.status = 'playing'; S.startedAt = Date.now(); commit(); }
+function endGame(result){
+  if (!guard() || S.status !== 'playing') return;
+  S.history.unshift({id:uid(), result, startedAt:S.startedAt, endedAt:Date.now(), players:S.room.map(id => ({id, name:(byId(id)||{}).name || '?'}))});
+  S.history = S.history.slice(0, 100);
+  S.room = []; S.status = 'idle'; S.startedAt = null; commit();
+  toast(result === 'win' ? 'Game selesai: WIN 🏆' : 'Game selesai: LOSE 💀');
+}
+function delMember(id){
+  if (!guard()) return;
+  const m = byId(id); if (!m || m.role === 'admin') return;
+  if (S.status === 'playing' && S.room.includes(id)) return toast('Tidak bisa hapus saat game berjalan');
+  if (!confirm('Hapus ' + m.name + '?')) return;
+  S.members = S.members.filter(x => x.id !== id); S.queue = S.queue.filter(x => x !== id); S.room = S.room.filter(x => x !== id); commit();
+}
+function commit(){ save(); renderAll(); }
+function logout(){ sess = null; try { sessionStorage.removeItem('vipSess'); } catch(e){} stopCam($('vReg')); renderAll(); openLogin(); }
+
+/* ---------- Wajah ---------- */
+let modelsP = null;
+function ensureModels(){
+  if (modelsP) return modelsP;
+  $('mstat').textContent = 'Memuat model wajah…';
+  modelsP = Promise.all([
+    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+    faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+  ]).then(() => { $('mstat').textContent = ''; }).catch(e => { modelsP = null; $('mstat').textContent = 'Gagal memuat model wajah. Cek koneksi internet.'; throw e; });
+  return modelsP;
+}
+async function startCam(v){
+  stopCam(v);
+  const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:{ideal:640}, height:{ideal:480}}, audio:false});
+  v.srcObject = s; await v.play();
+}
+function stopCam(v){ if (v.srcObject){ v.srcObject.getTracks().forEach(t => t.stop()); v.srcObject = null; } }
+const detect = v => faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions({inputSize:320, scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
+function matchFace(desc, th = 0.5){
+  let best = null, bd = 9;
+  for (const m of S.members){
+    const d = faceapi.euclideanDistance(desc, new Float32Array(m.descriptor));
+    if (d < bd){ bd = d; best = m; }
+  }
+  return bd < th ? best : null;
+}
+
+let loginTimer = null, scanning = false;
+async function openLogin(){
+  if (!onAddRoute() || S.members.length === 0 || me()) return;
+  const msg = $('loginMsg');
+  clearInterval(loginTimer);
+  try {
+    msg.textContent = 'Menyiapkan…';
+    await ensureModels();
+    await startCam($('vLogin'));
+    msg.textContent = 'Mencari wajah…';
+    loginTimer = setInterval(scanLogin, 800);
+  } catch(e){
+    msg.textContent = 'Kamera/model gagal dibuka. Pastikan izin kamera aktif dan situs memakai HTTPS.';
+  }
+}
+async function scanLogin(){
+  if (scanning) return; scanning = true;
+  try {
+    const d = await detect($('vLogin'));
+    if (!d){ $('loginMsg').textContent = 'Wajah tidak terdeteksi…'; return; }
+    const m = matchFace(d.descriptor);
+    if (!m){ $('loginMsg').textContent = 'Wajah tidak terdaftar.'; return; }
+    clearInterval(loginTimer); stopCam($('vLogin'));
+    sess = m.id; try { sessionStorage.setItem('vipSess', m.id); } catch(e){}
+    toast('Halo, ' + m.name + '!'); renderAll();
+  } catch(e){} finally { scanning = false; }
+}
+
+async function regCam(){
+  try { await ensureModels(); await startCam($('vReg')); }
+  catch(e){ toast('Kamera gagal dibuka (butuh izin & HTTPS)'); }
+}
+async function regSave(){
+  const setup = S.members.length === 0;
+  if (!setup && !guard()) return;
+  const name = $('rName').value.trim();
+  if (!name) return toast('Isi nama dulu');
+  const v = $('vReg');
+  if (!v.srcObject) return toast('Buka kamera dulu');
+  let d;
+  try { await ensureModels(); d = await detect(v); } catch(e){ return toast('Gagal memproses wajah'); }
+  if (!d) return toast('Wajah tidak terdeteksi, coba lagi');
+  if (matchFace(d.descriptor, 0.45)) return toast('Wajah ini sudah terdaftar');
+
+  const b = d.detection.box, side = Math.max(b.width, b.height) * 1.5;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  cv.getContext('2d').drawImage(v, b.x + b.width/2 - side/2, b.y + b.height/2 - side/2, side, side, 0, 0, 128, 128);
+  const m = {id:uid(), name, photo:cv.toDataURL('image/jpeg', 0.7), descriptor:Array.from(d.descriptor), role:setup ? 'admin' : 'vip', createdAt:Date.now()};
+  S.members.push(m);
+  if (setup){ sess = m.id; try { sessionStorage.setItem('vipSess', m.id); } catch(e){} }
+  else if ($('rQueue').checked) S.queue.push(m.id);
+  $('rName').value = ''; stopCam(v);
+  commit(); toast('VIP tersimpan');
+}
+
+/* ---------- Event ---------- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = b.dataset.id;
+  const map = {
+    addq:() => addQueue(id), unq:() => removeQueue(id), up:() => moveUp(id), toroom:() => toRoom(id), outroom:() => outRoom(id),
+    start:startGame, win:() => endGame('win'), lose:() => endGame('lose'), del:() => delMember(id),
+    logout, logincam:openLogin, regcam:regCam, regsave:regSave
+  };
+  (map[b.dataset.act] || (() => {}))();
+});
+window.addEventListener('storage', e => { if (e.key === KEY){ S = load(); renderAll(); } });
+window.addEventListener('hashchange', () => { renderAll(); openLogin(); });
+setInterval(() => { const n = load(); if (JSON.stringify(n) !== JSON.stringify(S)){ S = n; renderAll(); } }, 4000);
+
+renderAll();
+openLogin();
+</script>
+</body>
+</html>
