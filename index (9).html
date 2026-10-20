@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>ArcZ Comunity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--base:#fff;--card:#fff;--tx:#000;--mut:#555;--edge:#999;--soft:#eee;--blue:#0000ee;--blue2:#0000ee;--ok:#080;--bad:#c00;--font:Arial,Helvetica,sans-serif}
+*{box-sizing:border-box;margin:0}
+body{background:#fff;color:#000;font:16px/1.4 var(--font);min-height:100vh}
+[hidden]{display:none!important}
+button,input{font:inherit;color:inherit}
+.glass{background:#fff;border:1px solid #999}
+main{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 80px)}
+.view{display:flex;flex-direction:column;gap:12px}
+h1{font:bold 24px var(--font)}
+h2{font:bold 18px var(--font);display:flex;align-items:center;gap:8px;margin-bottom:8px}
+h2 small{font:normal 13px var(--font);color:var(--mut)}
+.pad{padding:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mut{color:var(--mut);font-size:14px}
+.empty{color:var(--mut);text-align:center;padding:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid #767676;background:#efefef;padding:6px 12px;cursor:pointer;text-decoration:none;color:#000}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sm{padding:3px 8px;font-size:14px}
+.btn.wide{width:100%}
+.btn.ok{color:var(--ok)}.btn.bad{color:var(--bad)}.btn.gold{font-weight:bold}
+.btn.auto.on{background:#cfc}
+.chip{font-size:13px;padding:1px 6px;border:1px solid #999;background:#fff}
+.chip.playing,.chip.win{color:var(--ok);border-color:var(--ok)}
+.chip.lose{color:var(--bad);border-color:var(--bad)}
+.av{width:40px;height:40px;object-fit:cover;border:1px solid #999;flex:none;background:#eee;display:flex;align-items:center;justify-content:center;font-weight:bold}
+.av.sm{width:30px;height:30px;font-size:13px}
+.av.lg{width:80px;height:80px;font-size:30px}
+.seats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seat{border:1px dashed #999;min-height:96px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;font-size:13px;color:var(--mut)}
+.seat.full{border:1px solid #666;color:#000}
+.seat .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:bold}
+.list{display:flex;flex-direction:column;gap:6px}
+.item{display:flex;align-items:center;gap:8px;border:1px solid #ccc;padding:6px}
+.item .info{flex:1;min-width:0}
+.item .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pos{min-width:24px;text-align:center;font-weight:bold;flex:none}
+.acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.ctrl{display:flex;gap:8px;margin-top:10px}
+.ctrl .btn{flex:1}
+.hist{border:1px solid #ccc;padding:8px;display:flex;flex-direction:column;gap:6px}
+.avs{display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center}
+.avs span{font-size:14px;display:flex;align-items:center;gap:4px}
+.donate{display:flex;align-items:center;gap:10px;padding:12px;text-decoration:none;color:#000;background:#efefef;border:1px solid #767676}
+.donate b{font:bold 16px var(--font);display:block}
+.donate .ico{display:none}
+button.donate{width:100%;text-align:left;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stat{padding:8px;text-align:center}
+.stat b{display:block;font:bold 22px var(--font)}
+.profile-top{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:16px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:#eee;border:0;border-top:1px solid #999;padding:0 0 env(safe-area-inset-bottom,0px)}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border:0;background:none;color:#333;font-size:12px;cursor:pointer}
+.ni svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8}
+.ni.on{font-weight:bold;background:#fff;color:#000}
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.auth{width:100%;max-width:380px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.brand{font:bold 22px var(--font);text-align:center}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.seg button{border:1px solid #767676;background:#efefef;padding:6px;cursor:pointer}
+.seg button.on{background:#fff;font-weight:bold}
+.fp{display:flex;justify-content:center;padding:4px 0}
+.fpbtn{width:90px;height:90px;border:1px solid #767676;background:#efefef;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fpbtn:disabled{opacity:.5}
+.fpbtn svg{width:50px;height:50px;fill:none;stroke:currentColor;stroke-width:1.6}
+#authMsg{text-align:center;font-size:14px;color:var(--mut);min-height:20px}
+#upForm{display:flex;flex-direction:column;gap:8px}
+input[type=text]{width:100%;background:#fff;border:1px solid #767676;padding:8px}
+.note{border:1px solid #999;padding:8px;font-size:14px}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.setup{padding:16px;max-width:420px}
+#warn,#hist,#pick,#fpnote{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+#warn .box,#hist .box,#pick .box,#fpnote .box{width:100%;max-width:360px;padding:16px;display:flex;flex-direction:column;gap:10px;border:1px solid #000}
+#warn h3,#hist h3,#pick h3,#fpnote h3{font:bold 18px var(--font)}
+#warn .uname{border:1px solid #999;padding:8px;text-align:center;font-weight:bold;word-break:break-word}
+.hd{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.center .donate{flex-direction:column;text-align:center;justify-content:center}
+.center h2,.center .ctrl{justify-content:center}
+.chatbox{height:240px;overflow:auto;display:flex;flex-direction:column;gap:4px;padding:6px;border:1px solid #999;text-align:left}
+.msg{max-width:82%;align-self:flex-start;border:1px solid #ccc;padding:4px 8px;font-size:14px;word-break:break-word}
+.msg b{display:block;font-size:12px}
+.msg small{display:block;font-size:10px;color:var(--mut);text-align:right}
+.msg.me{align-self:flex-end;background:#eee}
+.chatform{display:flex;gap:6px;margin-top:8px}
+.chatform input{flex:1;min-width:0}
+#hist .box{max-width:420px;max-height:80vh}
+#hist .row h3{margin:0}
+#histBody{overflow:auto;min-height:0}
+#tour{position:fixed;inset:0;z-index:80}
+#tour.dim{background:rgba(0,0,0,.6)}
+#tourHole{position:fixed;border:2px solid #f00;box-shadow:0 0 0 9999px rgba(0,0,0,.6);pointer-events:none}
+#tourBox{position:fixed;width:min(88vw,340px);padding:12px;border:1px solid #000}
+#tourBox h3{font:bold 17px var(--font);margin-bottom:4px}
+#tourBox p{font-size:14px}
+#tourBox .hint{color:var(--mut);font-size:12px;margin-top:4px}
+#tourBox .tnav{display:flex;align-items:center;gap:8px;margin-top:12px}
+#tourBox .tnav .grow{flex:1}
+#tourBox .cnt{font-size:12px;color:var(--mut)}
+.linkbtn{background:none;border:0;color:var(--blue);text-decoration:underline;font-size:14px;cursor:pointer;padding:4px}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translate(-50%,-20px);padding:8px 14px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:95;max-width:90%;text-align:center;background:#000;color:#fff}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+
+</head>
+<body>
+
+<section id="setup" hidden style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div class="glass setup">
+    <h2>Isi konfigurasi dulu</h2>
+    <p class="mut">Buka <code>index.html</code>, lalu isi <code>SUPABASE_URL</code> dan <code>SUPABASE_KEY</code> (anon key) di bagian <code>CFG</code>. Jalankan juga <code>supa.sql</code> di SQL Editor Supabase.</p>
+  </div>
+</section>
+
+<section id="login" hidden>
+  <div class="glass auth">
+    <div class="brand">👑 ArcZ Comunity</div>
+    <div class="seg">
+      <button id="segIn" class="on" data-act="modeIn">Masuk</button>
+      <button id="segUp" data-act="modeUp">Daftar</button>
+    </div>
+    <div id="inForm" class="fp"><button class="fpbtn" id="fpIn" data-act="loginfp" aria-label="Masuk dengan sidik jari"><svg viewBox="0 0 24 24"><path d="M12 11v3a8 8 0 0 1-1.6 4.8"/><path d="M8 11a4 4 0 0 1 8 0v1a12 12 0 0 1-2.4 7.2"/><path d="M5 12v-1a7 7 0 0 1 14 0v1c0 2-.3 3.8-.9 5.5"/><path d="M5 16c.2 1.6.6 3 1.2 4.2"/><path d="M9 21c-.6-1-1-2.2-1.2-3.5"/></svg></button></div>
+    <button class="linkbtn" id="otherAcc" data-act="otheracc" hidden style="align-self:center">Masuk dengan akun lain</button>
+    <p id="authMsg">Memuat…</p>
+    <div id="upForm" hidden>
+      <input type="text" id="rName" placeholder="Nama kamu (dipakai juga saat donate)" maxlength="30" autocomplete="off">
+      <button class="btn gold wide" id="fpUp" data-act="regsave">👆 Daftar dengan sidik jari</button>
+    </div>
+  </div>
+</section>
+
+<main id="app" hidden></main>
+<nav id="nav" class="glass" hidden></nav>
+<div id="warn" hidden><div class="glass box" role="alertdialog" aria-modal="true" aria-labelledby="warnT">
+  <h3 id="warnT">⚠️ Sebelum donate</h3>
+  <p>Gunakan username dari web ini saat donate, agar kamu dimasukkan ke antrian.</p>
+  <div class="uname" id="warnName"></div>
+  <div class="ctrl"><button class="btn" data-act="warnno">Batal</button><button class="btn gold" data-act="sawergo">Mengerti, lanjut</button></div>
+</div></div>
+<div id="fpnote" hidden><div class="glass box" role="alertdialog" aria-modal="true" aria-labelledby="fpnoteT">
+  <h3 id="fpnoteT">👆 Sidik jari untuk apa?</h3>
+  <p>Sidik jarimu dipakai untuk <b>masuk ke akun</b> dan <b>mencegah akun ganda</b>. Sidik jari dibaca oleh sensor perangkatmu sendiri, datanya tidak dikirim dan tidak disimpan oleh web ini. Satu perangkat hanya bisa mendaftar satu akun.</p>
+  <p class="mut">Baca dulu ya, tombol lanjut aktif dalam 3 detik.</p>
+  <div class="ctrl"><button class="btn" data-act="fpno">Batal</button><button class="btn gold" id="fpGo" data-act="fpgo" disabled>Lanjut (3)</button></div>
+</div></div>
+<div id="pick" hidden><div class="glass box" role="dialog" aria-modal="true" aria-labelledby="pickT">
+  <h3 id="pickT">Kamu mau apa?</h3>
+  <p>Kamu mau donate atau beli VIP? Kalau beli VIP, kamu dibawa ke halaman VIP's.</p>
+  <div class="ctrl" style="flex-direction:column"><button class="btn gold" data-act="pickdonate">💝 Donate</button><button class="btn fly" data-act="pickvip">👑 Beli VIP</button></div>
+  <button class="linkbtn" data-act="pickno">Batal</button>
+</div></div>
+<div id="hist" hidden><div class="glass box" role="dialog" aria-modal="true" aria-labelledby="histT"><div class="row"><h3 id="histT">🕘 Riwayat</h3><button class="btn sm" data-act="histno" aria-label="Tutup">✕</button></div><div id="histBody"></div></div></div>
+<div id="tour" hidden><div id="tourHole" hidden></div><div id="tourBox" class="glass" role="dialog" aria-live="polite"></div></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* ================== KONFIGURASI ================== */
+const CFG = {
+  SUPABASE_URL: 'https://wjypazelvrdxcajapous.supabase.co',
+  SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqeXBhemVsdnJkeGNhamFwb3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2OTU4ODUsImV4cCI6MjEwNzI3MTg4NX0.HGe5OB8jyA_dKh3PpaEyJrqpT4dLHRl5PMJBNvzR7AA',
+  DONATE: 'https://sociabuzz.com/zixixiangxiang/tribe',
+  MAX_ROOM: 4
+};
+/* ================================================== */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = ts => ts ? new Date(ts).toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'}) : '-';
+const ICON = {
+  home:'<path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/>',
+  hist:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  gem:'<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20M9 3l3 18M15 3l-3 18"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'
+};
+const svg = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+
+let tt;
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 2600); }
+
+/* ---------- State ---------- */
+const configured = !/YOUR-/.test(CFG.SUPABASE_URL + CFG.SUPABASE_KEY);
+const sb = configured ? supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY, {auth:{persistSession:false}}) : null;
+const EMPTY = () => ({me:null, members:[], entries:[], game:{status:'idle', started_at:null}, history:[]});
+let S = EMPTY();
+let token = localStorage.getItem('vipTok');
+let tab = 'home', lastSig = '';
+const byId = id => S.members.find(m => m.id === id);
+const isAdm = () => !!S.me && S.me.role === 'admin';
+const roomEntries = () => S.entries.filter(e => e.zone === 'room').sort((a,b) => a.pos - b.pos);
+const queueEntries = () => S.entries.filter(e => e.zone === 'queue').sort((a,b) => a.rnd - b.rnd || a.pos - b.pos);
+
+async function rpc(fn, args = {}){
+  const {data, error} = await sb.rpc(fn, args);
+  if (error) throw error;
+  return data;
+}
+const isSessionErr = e => /Sesi tidak valid/.test((e && e.message) || '');
+
+async function refresh(){
+  if (!token) return;
+  const d = await rpc('get_state', {p_token: token});
+  const sig = JSON.stringify([d.me && [d.me.id, d.me.role], d.members, d.entries, d.game, (d.history || []).map(h => h.id)]);
+  S = {me:d.me, members:d.members || [], entries:d.entries || [], game:d.game || {status:'idle', started_at:null}, history:d.history || []};
+  if (sig !== lastSig){ lastSig = sig; if (!touring) render(); }
+}
+function poll(){ if (!token) return; refresh().catch(e => { if (isSessionErr(e)) doLogout(false); }); }
+
+/* ---------- Sidik jari (WebAuthn) ---------- */
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
+const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+const fpOk = () => !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext);
+
+function fpErr(e){
+  const n = e && e.name, m = (e && e.message) || '';
+  if (n === 'InvalidStateError') return 'Sidik jari/perangkat ini sudah terdaftar. Silakan pilih Masuk.';
+  if (n === 'NotAllowedError') return 'Dibatalkan atau sidik jari tidak cocok. Coba lagi.';
+  if (n === 'NotSupportedError') return 'Perangkat ini belum mendukung sidik jari.';
+  if (/belum terdaftar/.test(m)) return 'Sidik jari belum terdaftar. Pilih Daftar.';
+  return m || 'Gagal memproses sidik jari';
+}
+
+/* ---------- Login / daftar ---------- */
+let mode = 'in';
+function setMsg(t){ $('authMsg').textContent = t; }
+function setMode(m){
+  mode = m;
+  $('segIn').classList.toggle('on', m === 'in'); $('segUp').classList.toggle('on', m === 'up');
+  $('upForm').hidden = m !== 'up'; $('inForm').hidden = m !== 'in'; $('otherAcc').hidden = m !== 'in' || !getSavedCred();
+  if (!fpOk()) return setMsg('Sidik jari butuh HTTPS dan perangkat dengan sensor/kunci layar.');
+  setMsg(m === 'in' ? 'Tap ikon sidik jari untuk masuk.' : 'Isi nama lalu tekan tombol daftar dengan sidik jari.');
+}
+function showLogin(){ $('app').hidden = true; $('nav').hidden = true; $('login').hidden = false; setMode(getSavedCred() ? 'in' : 'up'); }
+function showApp(){ $('login').hidden = true; $('app').hidden = false; $('nav').hidden = false; }
+
+const getSavedCred = () => { try { return localStorage.getItem('vipCred'); } catch(e){ return null; } };
+const setSavedCred = v => { try { v ? localStorage.setItem('vipCred', v) : localStorage.removeItem('vipCred'); } catch(e){} };
+async function loginFp(silent){
+  if (!fpOk()) return setMode('in');
+  const btn = $('fpIn'); btn.disabled = true; setMsg('Menunggu sidik jari…');
+  const pk = {challenge: rnd(32), userVerification:'required', timeout:60000};
+  // Perangkat ini ingat akunnya: langsung minta sidik jari, tanpa pop up pilih kunci sandi.
+  const saved = getSavedCred();
+  if (saved){ try { pk.allowCredentials = [{type:'public-key', id: unb64u(saved)}]; } catch(e){ setSavedCred(null); } }
+  try {
+    const cred = await navigator.credentials.get({publicKey: pk});
+    const id = b64u(cred.rawId);
+    const res = await rpc('login_passkey', {p_cred: id});
+    setSavedCred(id);
+    await enterApp(res);
+  } catch(e){
+    if (/belum terdaftar/.test((e && e.message) || '')) setSavedCred(null);
+    setMsg(silent ? 'Tap ikon sidik jari untuk masuk.' : fpErr(e));
+    $('otherAcc').hidden = !getSavedCred();
+  } finally { btn.disabled = false; }
+}
+let fpTimer = null;
+function fpAsk(){
+  const name = $('rName').value.trim();
+  if (name.length < 2) return toast('Isi nama dulu (minimal 2 huruf)');
+  if (!fpOk()) return toast('Sidik jari butuh HTTPS dan perangkat yang mendukung');
+  const go = $('fpGo'); let n = 3;
+  go.disabled = true; go.textContent = 'Lanjut (' + n + ')';
+  $('fpnote').hidden = false;
+  clearInterval(fpTimer);
+  fpTimer = setInterval(() => {
+    n--;
+    if (n > 0) go.textContent = 'Lanjut (' + n + ')';
+    else { clearInterval(fpTimer); go.disabled = false; go.textContent = 'Mengerti, lanjut'; }
+  }, 1000);
+}
+function fpClose(){ clearInterval(fpTimer); $('fpnote').hidden = true; }
+async function regSave(){
+  const name = $('rName').value.trim();
+  if (name.length < 2) return toast('Isi nama dulu (minimal 2 huruf)');
+  if (!fpOk()) return toast('Sidik jari butuh HTTPS dan perangkat yang mendukung');
+  const btn = $('fpUp'); btn.disabled = true;
+  try {
+    // Cegah daftar ganda: kirim semua credential yang sudah terdaftar sebagai excludeCredentials.
+    // Jika sidik jari/passkey di perangkat ini sudah terdaftar, browser menolak membuat yang baru.
+    const ids = (await rpc('list_cred_ids')) || [];
+    const cred = await navigator.credentials.create({publicKey:{
+      challenge: rnd(32),
+      rp: {name:'ArcZ Comunity'},
+      user: {id: rnd(16), name: name, displayName: name},
+      pubKeyCredParams: [{type:'public-key', alg:-7}, {type:'public-key', alg:-257}],
+      authenticatorSelection: {authenticatorAttachment:'platform', userVerification:'required', residentKey:'required'},
+      excludeCredentials: ids.map(id => ({type:'public-key', id: unb64u(id)})),
+      timeout: 60000
+    }});
+    const res = await rpc('register_member', {p_name: name, p_cred: b64u(cred.rawId)});
+    setSavedCred(b64u(cred.rawId));
+    $('rName').value = '';
+    await enterApp(res);
+  } catch(e){ toast(fpErr(e)); } finally { btn.disabled = false; }
+}
+async function enterApp(res){
+  token = res.token; localStorage.setItem('vipTok', token);
+  S = EMPTY(); S.me = res.me; lastSig = '';
+  tab = initialTab();
+  await refresh();
+  showApp(); render(); toast('Halo, ' + res.me.name + '!'); maybeTour();
+}
+async function doLogout(callServer = true){
+  if (callServer && token){ try { await rpc('logout_session', {p_token: token}); } catch(e){} }
+  token = null; localStorage.removeItem('vipTok'); S = EMPTY(); lastSig = '';
+  touring = false; $('tour').hidden = true; $('warn').hidden = true; $('hist').hidden = true; $('pick').hidden = true; chatReset();
+  showLogin();
+}
+
+/* ---------- Tampilan ---------- */
+function avatar(m, cls = ''){
+  const nm = (m && m.name) || '?';
+  if (m && m.photo) return `<img class="av ${cls}" src="${m.photo}" alt="">`;
+  let h = 0; for (const ch of nm) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `<div class="av ${cls}" style="background:hsl(${h} 70% 90%);color:hsl(${h} 55% 30%)">${esc(nm[0].toUpperCase())}</div>`;
+}
+function seatsHTML(adm){
+  const list = roomEntries(); let h = `<div class="seats ${S.game.status === 'playing' ? 'playing-glow' : ''}">`;
+  for (let i = 0; i < CFG.MAX_ROOM; i++){
+    const e = list[i], m = e && byId(e.member_id);
+    h += m ? `<div class="seat full">${avatar(m)}<div class="nm">${esc(m.name)}</div>${adm && S.game.status === 'idle' ? `<button class="btn sm" data-act="outroom" data-id="${e.id}">Keluar</button>` : ''}</div>`
+           : `<div class="seat">Kursi ${i+1}<br>kosong</div>`;
+  }
+  return h + '</div>';
+}
+function queueHTML(adm){
+  const q = queueEntries(); if (!q.length) return '<div class="empty">Antrian masih kosong.</div>';
+  const inRoom = new Set(roomEntries().map(e => e.member_id));
+  const idle = S.game.status === 'idle' && roomEntries().length < CFG.MAX_ROOM;
+  const total = {}, seen = {};
+  q.forEach(e => total[e.member_id] = (total[e.member_id] || 0) + 1);
+  return '<div class="list">' + q.map((e, i) => {
+    const m = byId(e.member_id); if (!m) return '';
+    seen[e.member_id] = (seen[e.member_id] || 0) + 1;
+    const tag = total[e.member_id] > 1 ? `<span class="mut">Game ${seen[e.member_id]} dari ${total[e.member_id]}</span>` : '';
+    const canIn = idle && !inRoom.has(e.member_id);
+    return `<div class="item"><div class="pos">${i+1}</div>${avatar(m,'sm')}<div class="info"><b>${esc(m.name)}</b>${tag}</div>` +
+      (adm ? `<div class="acts"><button class="btn sm" data-act="up" data-id="${e.id}" ${i === 0 ? 'disabled' : ''} aria-label="Naikkan">▲</button><button class="btn sm blue" data-act="toroom" data-id="${e.id}" ${canIn ? '' : 'disabled'}>Ke room</button><button class="btn sm" data-act="unq" data-id="${e.id}" aria-label="Hapus dari antrian">✕</button></div>` : '') + '</div>';
+  }).join('') + '</div>';
+}
+function historyHTML(){
+  if (!S.history.length) return '<div class="empty">Belum ada game yang selesai.</div>';
+  return '<div class="list">' + S.history.map(h => `<div class="hist"><div class="row"><span class="mut">${fmt(h.ended_at)}</span><span class="chip ${h.result}">${h.result === 'win' ? 'Win' : 'Lose'}</span></div><div class="avs">${(h.players || []).map(p => `<span>${avatar({name:p.name},'sm')}${esc(p.name)}</span>`).join('')}</div></div>`).join('') + '</div>';
+}
+const donateHTML = (t, s, a) => `<button type="button" class="glass donate" data-tour="donate" data-act="${a || 'sawer'}"><span class="ico"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON.gem}</svg></span><span><b>${esc(t)}</b><span class="mut">${esc(s)}</span></span></button>`;
+const stateChip = () => `<span class="chip ${S.game.status}">${S.game.status === 'playing' ? 'Sedang main' : 'Menunggu'}</span>`;
+const timerHTML = () => S.game.status === 'playing' ? `<p class="mut" style="margin-top:10px">Berjalan <b data-timer>00:00</b> sejak ${fmt(S.game.started_at)}</p>` : '';
+const myTickets = () => queueEntries().filter(e => e.member_id === S.me.id).length;
+
+function myStatus(){
+  const id = S.me.id, t = myTickets();
+  const inRoom = roomEntries().some(e => e.member_id === id);
+  if (inRoom) return (S.game.status === 'playing' ? 'Sedang bermain di room' : 'Sudah di room, menunggu start') + (t ? `. Sisa ${t} game di antrian.` : '.');
+  if (t){ const first = queueEntries().findIndex(e => e.member_id === id) + 1; return `${t} game di antrian. Giliran terdekat: nomor ${first}.`; }
+  return 'Belum punya game di antrian.';
+}
+
+function viewHome(){
+  const m = S.me;
+  const mine = S.history.filter(h => (h.players || []).some(p => p.id === m.id));
+  const wins = mine.filter(h => h.result === 'win').length;
+  return `<div class="view center">
+    <div class="hd">${avatar(m)}<div><p class="mut">👑 ArcZ Comunity</p><h1>Halo, ${esc(m.name)}</h1></div></div>
+    ${donateHTML('Donate klik disini', 'Bebas bang donet buat beli snek 😁😁', 'pick')}
+    <div class="stats" data-tour="stats"><div class="stat glass"><b>${mine.length}</b><span class="mut">Game</span></div><div class="stat glass"><b>${wins}</b><span class="mut">Win</span></div><div class="stat glass"><b>${mine.length - wins}</b><span class="mut">Lose</span></div></div>
+    ${chatHTML()}
+  </div>`;
+}
+function viewVip(){
+  return `<div class="view"><h1>VIP's</h1>
+    ${donateHTML('Order VIP seiklasnya....', 'Donate di sociabuzz.com/zixixiangxiang/tribe, lalu admin menambahkan jumlah game kamu.')}
+    <button class="btn wide" data-act="hist" data-tour="histbtn">🕘 Riwayat</button>
+    <div class="glass pad" data-tour="room"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(false)}${timerHTML()}</div>
+    <div class="glass pad" data-tour="queue"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(false)}</div>
+  </div>`;
+}
+function histFill(){
+  const clr = isAdm() && S.history.length ? '<button class="btn bad wide" style="margin-bottom:12px" data-act="clearhist">🗑 Hapus riwayat</button>' : '';
+  $('histBody').innerHTML = clr + historyHTML();
+}
+function openHist(){ histFill(); $('hist').hidden = false; }
+function viewAdmin(){
+  const idle = S.game.status === 'idle';
+  const ctrl = idle
+    ? `<div class="ctrl"><button class="btn ok" data-act="start" ${roomEntries().length ? '' : 'disabled'}>▶ Start game</button></div>`
+    : `<p class="mut" style="margin-top:10px">Game berjalan <b data-timer>00:00</b>. Game selesai:</p><div class="ctrl"><button class="btn ok" data-act="win">🏆 Win</button><button class="btn bad" data-act="lose">💀 Lose</button></div>`;
+  const members = S.members.map(x => {
+    const n = S.entries.filter(e => e.member_id === x.id && e.zone === 'queue').length;
+    const inR = S.entries.some(e => e.member_id === x.id && e.zone === 'room');
+    const info = [x.role === 'admin' ? 'Admin' : 'Member', x.id === S.me.id ? 'kamu' : '', n ? `${n} game antri` : '', inR ? 'di room' : ''].filter(Boolean).join(' · ');
+    return `<div class="item">${avatar(x,'sm')}<div class="info"><b>${esc(x.name)}</b><span class="mut">${info}</span></div><div class="acts"><button class="btn sm blue" data-act="addgames" data-id="${x.id}">+ Game</button><button class="btn sm" data-act="del" data-id="${x.id}" aria-label="Hapus akun">🗑</button></div></div>`;
+  }).join('');
+  return `<div class="view"><h1>Admin</h1>
+    <div class="glass pad"><h2>Room game ${stateChip()}<small style="margin-left:auto">${roomEntries().length}/${CFG.MAX_ROOM}</small></h2>${seatsHTML(true)}${ctrl}</div>
+    <div class="glass pad"><h2>Antrian VIP <small>${queueEntries().length} game</small></h2>${queueHTML(true)}</div>
+    <div class="glass pad"><h2>Semua member <small>${S.members.length} terdaftar</small></h2><div class="list">${members}</div>
+      <p class="mut" style="margin-top:10px">Tombol + Game menambah tiket antrian. Tiket milik satu orang otomatis diselang-seling dengan member lain.</p></div>
+  </div>`;
+}
+function viewProfile(){
+  const m = S.me;
+  return `<div class="view"><h1>Profil</h1>
+    <div class="glass profile-top">${avatar(m,'lg')}<div><div style="font:800 22px var(--font)">${esc(m.name)}</div><div class="mut">Bergabung ${fmt(m.created_at)}</div></div>${m.role === 'admin' ? '<span class="chip admin">Admin</span>' : '<span class="chip">Member</span>'}<p class="mut">Pakai nama ini saat donate.</p></div>
+    <button class="btn wide" data-act="tour">📖 Lihat tutorial lagi</button>
+    <button class="btn wide" data-act="logout">Keluar</button>
+  </div>`;
+}
+function render(){
+  if (!S.me) return;
+  if (tab === 'admin' && !isAdm()) tab = 'home';
+  const v = {home:viewHome, vip:viewVip, admin:viewAdmin, profile:viewProfile}[tab] || viewHome;
+  const hadFocus = document.activeElement && document.activeElement.id === 'chatIn';
+  $('app').innerHTML = v();
+  if (tab === 'home'){
+    chatPaint(); if (!chatLoaded) chatPoll(true);
+    if (hadFocus && $('chatIn')){ const ci = $('chatIn'); ci.focus(); ci.setSelectionRange(ci.value.length, ci.value.length); }
+  } else if (chatAuto) chatSet(false);
+  const on = k => tab === k ? 'on' : '';
+  let nav = `<button class="ni ${on('home')}" data-tab="home">${svg('home')}Dashboard</button>` +
+    `<button class="ni ${on('vip')}" data-tab="vip">${svg('gem')}VIP's</button>`;
+  if (isAdm()) nav += `<button class="ni ${on('admin')}" data-tab="admin">${svg('shield')}Admin</button>`;
+  nav += `<button class="ni ${on('profile')}" data-tab="profile">${svg('user')}Profil</button>`;
+  $('nav').innerHTML = nav;
+  if (!$('hist').hidden) histFill();
+  tick();
+}
+function tick(){
+  const el = document.querySelectorAll('[data-timer]'); if (!el.length || !S.game.started_at) return;
+  const s = Math.max(0, Math.floor((Date.now() - new Date(S.game.started_at)) / 1000));
+  const t = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  el.forEach(e => e.textContent = t);
+}
+setInterval(tick, 1000);
+
+/* ---------- Aksi (semua divalidasi ulang di server) ---------- */
+let busy = false;
+async function run(fn){
+  if (busy) return false; busy = true;
+  try { await fn(); await refresh(); return true; }
+  catch(e){ if (isSessionErr(e)) doLogout(false); toast(e.message || 'Terjadi kesalahan'); return false; }
+  finally { busy = false; }
+}
+function warnDonate(){
+  if (!S.me) return openSawer();
+  $('warnName').textContent = S.me.name; $('warn').hidden = false;
+}
+const ACT = {
+  addgames: id => {
+    const m = byId(id); if (!m) return;
+    const n = parseInt(prompt(`Tambah berapa game untuk ${m.name}?`, '1'), 10);
+    if (!n || n < 1 || n > 20) return;
+    run(() => rpc('admin_add_games', {p_token:token, p_member:id, p_n:n})).then(ok => ok && toast(`+${n} game untuk ${m.name}`));
+  },
+  unq: id => run(() => rpc('admin_remove_entry', {p_token:token, p_entry:id})),
+  up: id => {
+    const q = queueEntries(), i = q.findIndex(e => e.id === id); if (i < 1) return;
+    run(() => rpc('admin_swap', {p_token:token, p_a:id, p_b:q[i-1].id}));
+  },
+  toroom: id => run(() => rpc('admin_to_room', {p_token:token, p_entry:id})),
+  outroom: id => run(() => rpc('admin_out_room', {p_token:token, p_entry:id})),
+  start: () => run(() => rpc('admin_start', {p_token:token})),
+  win: () => run(() => rpc('admin_end', {p_token:token, p_result:'win'})).then(ok => ok && toast('Game selesai: Win 🏆')),
+  lose: () => run(() => rpc('admin_end', {p_token:token, p_result:'lose'})).then(ok => ok && toast('Game selesai: Lose 💀')),
+  del: async id => {
+    const m = byId(id); if (!m || !isAdm()) return;
+    const self = id === S.me.id, last = self && S.members.filter(x => x.role === 'admin').length <= 1;
+    const msg = self ? 'Hapus AKUNMU sendiri? Kamu akan keluar dan tidak bisa masuk lagi dengan sidik jari ini.' + (last ? '\n\nKamu admin terakhir: setelah ini tidak ada admin sampai kamu atur lewat SQL.' : '') : 'Hapus akun ' + m.name + '?';
+    if (!confirm(msg)) return;
+    if (self){
+      try { await rpc('admin_delete_member', {p_token:token, p_member:id}); setSavedCred(null); await doLogout(false); toast('Akunmu sudah dihapus'); }
+      catch(e){ toast(e.message || 'Gagal menghapus akun'); }
+      return;
+    }
+    run(() => rpc('admin_delete_member', {p_token:token, p_member:id})).then(ok => ok && toast('Akun ' + m.name + ' dihapus'));
+  },
+  clearhist: () => {
+    if (!isAdm() || !confirm('Hapus semua riwayat game? Tidak bisa dibatalkan.')) return;
+    run(() => rpc('admin_clear_history', {p_token:token})).then(ok => ok && toast('Riwayat dihapus'));
+  },
+  logout: () => doLogout(true),
+  sawer: warnDonate,
+  pick: () => { $('pick').hidden = false; },
+  pickno: () => { $('pick').hidden = true; },
+  pickdonate: () => { $('pick').hidden = true; openSawer(); },
+  pickvip: () => { $('pick').hidden = true; tab = 'vip'; render(); window.scrollTo(0, 0); },
+  chatauto: () => chatSet(!chatAuto),
+  chatrefresh: () => chatPoll(true),
+  chatsend: () => chatSend(),
+  hist: openHist,
+  histno: () => { $('hist').hidden = true; },
+  sawergo: () => { $('warn').hidden = true; openSawer(); },
+  warnno: () => { $('warn').hidden = true; },
+  loginfp: () => loginFp(),
+  otheracc: () => { setSavedCred(null); $('otherAcc').hidden = true; loginFp(); },
+  regsave: fpAsk,
+  fpno: fpClose,
+  fpgo: () => { if ($('fpGo').disabled) return; fpClose(); regSave(); },
+  modeIn: () => setMode('in'),
+  modeUp: () => setMode('up'),
+  tour: () => startTour(),
+  tournext: () => { if (tourI < tourSteps.length - 1){ tourI++; showStep(); } else endTour(); },
+  tourprev: () => { if (tourI > 0){ tourI--; showStep(); } },
+  tourskip: () => endTour()
+};
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]');
+  if (t){ tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  (ACT[b.dataset.act] || (() => {}))(b.dataset.id);
+});
+$('warn').addEventListener('click', e => { if (e.target === $('warn')) $('warn').hidden = true; });
+$('hist').addEventListener('click', e => { if (e.target === $('hist')) $('hist').hidden = true; });
+$('pick').addEventListener('click', e => { if (e.target === $('pick')) $('pick').hidden = true; });
+$('fpnote').addEventListener('click', e => { if (e.target === $('fpnote')) fpClose(); });
+
+/* ---------- Room chat (auto refresh 1 detik, manual ON, mati saat tab disembunyikan) ---------- */
+let chat = [], chatAfter = 0, chatAuto = false, chatTimer = null, chatBusy = false, chatLoaded = false, chatDraft = '', chatSending = false;
+function chatReset(){ chatSet(false); chat = []; chatAfter = 0; chatLoaded = false; chatDraft = ''; }
+function chatHTML(){
+  return `<div class="glass pad" data-tour="chat"><h2>💬 Room chat</h2>
+    <div class="row" style="justify-content:center;gap:8px;margin-bottom:10px"><button class="btn sm auto ${chatAuto ? 'on' : ''}" id="chatAutoBtn" data-act="chatauto">${chatAuto ? '● Auto refresh ON' : '○ Auto refresh OFF'}</button><button class="btn sm" data-act="chatrefresh" aria-label="Refresh chat">🔄</button></div>
+    <div id="chatBox" class="chatbox" aria-live="polite"></div>
+    <div class="chatform"><input type="text" id="chatIn" placeholder="Tulis pesan…" maxlength="300" autocomplete="off" value="${esc(chatDraft)}"><button class="btn gold" data-act="chatsend">Kirim</button></div>
+    <p class="mut" style="margin-top:8px">Auto refresh mati sendiri saat tab disembunyikan.</p></div>`;
+}
+function chatPaint(){
+  const box = $('chatBox'); if (!box) return;
+  const near = !box.dataset.init || box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  box.innerHTML = chat.length ? chat.map(c => {
+    const mine = S.me && c.member_id === S.me.id;
+    const tm = new Date(c.created_at).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    return `<div class="msg ${mine ? 'me' : ''}"><b>${mine ? 'Kamu' : esc(c.name)}</b><span>${esc(c.body)}</span><small>${tm}</small></div>`;
+  }).join('') : '<div class="empty">Belum ada pesan. Mulai ngobrol!</div>';
+  box.dataset.init = '1';
+  if (near) box.scrollTop = box.scrollHeight;
+}
+async function chatPoll(force){
+  if (!token || (chatBusy && !force)) return;
+  chatBusy = true;
+  try {
+    const rows = ((await rpc('chat_list', {p_token: token, p_after: chatAfter})) || []).filter(r => r.id > chatAfter);
+    const first = !chatLoaded; chatLoaded = true;
+    if (rows.length){ chat = chat.concat(rows).slice(-100); chatAfter = rows[rows.length - 1].id; }
+    if (rows.length || first) chatPaint();
+  } catch(e){ if (isSessionErr(e)) doLogout(false); }
+  finally { chatBusy = false; }
+}
+function chatSet(on){
+  chatAuto = !!on; clearInterval(chatTimer); chatTimer = null;
+  if (chatAuto){ chatPoll(); chatTimer = setInterval(chatPoll, 1000); }
+  const b = $('chatAutoBtn');
+  if (b){ b.classList.toggle('on', chatAuto); b.textContent = chatAuto ? '● Auto refresh ON' : '○ Auto refresh OFF'; }
+}
+async function chatSend(){
+  const inp = $('chatIn'), t = (inp ? inp.value : chatDraft).trim();
+  if (!t || chatSending) return;
+  chatSending = true;
+  try { await rpc('chat_send', {p_token: token, p_body: t}); chatDraft = ''; if (inp) inp.value = ''; await chatPoll(true); }
+  catch(e){ if (isSessionErr(e)) doLogout(false); toast(e.message || 'Gagal mengirim pesan'); }
+  finally { chatSending = false; if (inp) inp.focus(); }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && chatAuto) chatSet(false); });
+document.addEventListener('input', e => { if (e.target && e.target.id === 'chatIn') chatDraft = e.target.value; });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'chatIn'){ e.preventDefault(); chatSend(); } });
+
+/* ---------- Tutorial ---------- */
+let touring = false, tourSteps = [], tourI = 0;
+function buildSteps(){
+  const st = [
+    {tab:'home', title:'Selamat datang di ArcZ Comunity 👑', text:'Ini panduan singkat yang menunjukkan fungsi semua tombol. Tap Lanjut untuk mulai.'},
+    {tab:'home', sel:'[data-tour="donate"]', title:'Tombol donate', text:'Tap untuk memilih: Donate (dikirim ke halaman Sociabuzz) atau Beli VIP (dibawa ke halaman VIP).'},
+    {tab:'home', sel:'[data-tour="stats"]', title:'Statistik', text:'Total game, Win, dan Lose milikmu.'},
+    {tab:'home', sel:'[data-tour="chat"]', title:'Room chat', text:'Ngobrol dengan member lain. Aktifkan Auto refresh agar pesan baru muncul tiap 1 detik. Auto refresh mati sendiri saat tab disembunyikan.'},
+    {sel:'nav [data-tab="vip"]', title:"VIP's", text:'Halaman room game dan antrian VIP.'},
+    {tab:'vip', sel:'[data-tour="donate"]', title:'Order VIP', text:'Sebelum ke Sociabuzz kamu diingatkan memakai username dari web ini, supaya masuk antrian.'},
+    {tab:'vip', sel:'[data-tour="room"]', title:'Room game', text:'Ada 4 kursi. Terlihat siapa yang sedang main dan statusnya: Menunggu atau Sedang main.'},
+    {tab:'vip', sel:'[data-tour="queue"]', title:'Antrian VIP', text:'Urutan giliran main. Kalau kamu punya beberapa game, tiketnya diselang-seling dengan member lain, misalnya tertulis "Game 2 dari 3".'},
+    {tab:'vip', sel:'[data-tour="histbtn"]', title:'Riwayat', text:'Membuka pop up daftar game yang sudah selesai beserta hasil Win atau Lose.'},
+    {sel:'nav [data-tab="profile"]', title:'Profil', text:'Lihat namamu, buka tutorial, atau keluar.'},
+    {tab:'profile', sel:'[data-act="tour"]', title:'Tutorial', text:'Tap untuk membuka panduan ini lagi kapan saja.'},
+    {tab:'profile', sel:'[data-act="logout"]', title:'Keluar', text:'Keluar dari akun. Masuk lagi cukup dengan sidik jari.'}
+  ];
+  if (isAdm()) st.push(
+    {tab:'admin', sel:'nav [data-tab="admin"]', title:'Halaman Admin', text:'Tab ini hanya terlihat oleh admin.'},
+    {tab:'admin', sel:'[data-act="addgames"]', title:'+ Game', text:'Tambah jumlah game VIP untuk member. Misalnya 3 game jadi 3 tiket antrian yang terpisah.'},
+    {tab:'admin', sel:'[data-act="toroom"]', title:'Ke room', text:'Pindahkan tiket dari antrian ke room. Maksimal 4 orang, satu orang satu kursi.'},
+    {tab:'admin', sel:'[data-act="up"]', title:'▲ Naikkan', text:'Tukar posisi tiket dengan antrian di atasnya.'},
+    {tab:'admin', sel:'[data-act="unq"]', title:'✕ Hapus tiket', text:'Hapus satu tiket dari antrian.'},
+    {tab:'admin', sel:'[data-act="outroom"]', title:'Keluar dari room', text:'Kembalikan pemain dari room ke antrian paling depan. Hanya bisa sebelum game dimulai.'},
+    {tab:'admin', sel:'[data-act="start"]', title:'Start game', text:'Mulai game setelah room terisi.'},
+    {tab:'admin', sel:'[data-act="win"]', title:'Win dan Lose', text:'Muncul saat game berjalan. Pilih hasil akhir: room dikosongkan dan hasilnya masuk riwayat.'},
+    {tab:'admin', sel:'[data-act="del"]', title:'🗑 Hapus akun', text:'Hapus akun beserta tiket antriannya. Admin juga bisa menghapus akunnya sendiri.'}
+  );
+  st.push({tab:'home', title:'Selesai 🎉', text:'Kamu siap. Panduan bisa dibuka lagi dari menu Profil.'});
+  return st;
+}
+function maybeTour(){
+  if (!S.me) return;
+  let seen = false; try { seen = !!localStorage.getItem('arczTour_' + S.me.id); } catch(e){}
+  if (!seen) setTimeout(() => { if (S.me && !touring) startTour(); }, 600);
+}
+function startTour(){ if (!S.me) return; touring = true; tourSteps = buildSteps(); tourI = 0; $('tour').hidden = false; showStep(); }
+function endTour(){
+  touring = false; $('tour').hidden = true;
+  try { if (S.me) localStorage.setItem('arczTour_' + S.me.id, '1'); } catch(e){}
+  tab = 'home'; render(); window.scrollTo(0, 0);
+}
+function showStep(){
+  const st = tourSteps[tourI];
+  if (st.tab && tab !== st.tab){ tab = st.tab; render(); window.scrollTo(0, 0); }
+  const el = st.sel ? document.querySelector(st.sel) : null;
+  const last = tourI === tourSteps.length - 1;
+  $('tourBox').innerHTML = `<h3>${esc(st.title)}</h3><p>${esc(st.text)}</p>` +
+    (st.sel && !el ? '<p class="hint">Tombol ini belum tampil sekarang karena datanya belum ada. Nanti muncul sendiri.</p>' : '') +
+    `<div class="tnav"><span class="cnt">${tourI + 1}/${tourSteps.length}</span><span class="grow"></span>` +
+    (tourI > 0 ? '<button class="btn sm" data-act="tourprev">Kembali</button>' : '<button class="linkbtn" data-act="tourskip">Lewati</button>') +
+    `<button class="btn sm gold" data-act="tournext">${last ? 'Selesai' : 'Lanjut'}</button></div>`;
+  if (el) el.scrollIntoView({block:'center'});
+  setTimeout(placeTour, 80);
+}
+function placeTour(){
+  if (!touring) return;
+  const st = tourSteps[tourI], el = st.sel ? document.querySelector(st.sel) : null;
+  const hole = $('tourHole'), box = $('tourBox'), wrap = $('tour');
+  if (el){
+    const r = el.getBoundingClientRect(), pad = 6;
+    hole.hidden = false; wrap.classList.remove('dim');
+    Object.assign(hole.style, {left:(r.left - pad) + 'px', top:(r.top - pad) + 'px', width:(r.width + pad * 2) + 'px', height:(r.height + pad * 2) + 'px'});
+    box.style.transform = 'none';
+    const bw = box.offsetWidth, bh = box.offsetHeight, vw = innerWidth, vh = innerHeight;
+    let top = (r.bottom + pad + 12 + bh <= vh - 8) ? r.bottom + pad + 12 : r.top - pad - 12 - bh;
+    top = Math.max(8, Math.min(top, vh - bh - 8));
+    box.style.top = top + 'px';
+    box.style.left = Math.min(Math.max(8, r.left + r.width / 2 - bw / 2), vw - bw - 8) + 'px';
+  } else {
+    hole.hidden = true; wrap.classList.add('dim');
+    box.style.left = '50%'; box.style.top = '50%'; box.style.transform = 'translate(-50%,-50%)';
+  }
+}
+window.addEventListener('resize', placeTour);
+
+/* ---------- Donate: apa pun selalu dikirim ke Sociabuzz ---------- */
+function openSawer(){
+  const a = document.createElement('a');
+  a.href = CFG.DONATE; a.target = '_blank'; a.rel = 'noopener noreferrer';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- Boot ---------- */
+function initialTab(){
+  if (/\/add\/?$/.test(location.pathname) || /^#\/?(add|admin)/.test(location.hash)) return 'admin';
+  const h = location.hash.replace(/^#\/?/, '');
+  return ['home','vip','profile'].includes(h) ? h : 'home';
+}
+(async function boot(){
+  if (!configured){ $('setup').hidden = false; return; }
+  try {
+    if (token){
+      try { tab = initialTab(); await refresh(); if (S.me){ showApp(); render(); maybeTour(); setInterval(poll, 4000); return; } }
+      catch(e){ if (!isSessionErr(e)) throw e; token = null; localStorage.removeItem('vipTok'); }
+    }
+    setInterval(poll, 4000);
+    showLogin();
+    if (getSavedCred()) loginFp(true);
+  } catch(e){
+    $('setup').hidden = false;
+    $('setup').querySelector('p').textContent = 'Gagal terhubung ke Supabase: ' + (e.message || e) + '. Cek URL, anon key, dan pastikan supa.sql sudah dijalankan.';
+  }
+})();
+</script>
+</body>
+</html>
